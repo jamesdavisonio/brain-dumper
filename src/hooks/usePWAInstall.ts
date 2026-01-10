@@ -5,6 +5,11 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+// Extend Navigator interface to include iOS standalone property
+interface NavigatorStandalone extends Navigator {
+  standalone?: boolean
+}
+
 // Helper to detect iOS
 const isIOS = () => {
   const userAgent = window.navigator.userAgent.toLowerCase()
@@ -15,7 +20,7 @@ const isIOS = () => {
 const isInStandaloneMode = () => {
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
+    (window.navigator as NavigatorStandalone).standalone === true
   )
 }
 
@@ -27,7 +32,7 @@ export function usePWAInstall() {
   useEffect(() => {
     // Check if already installed (PWA or standalone mode)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-    const isIOSStandalone = (window.navigator as any).standalone === true
+    const isIOSStandalone = (window.navigator as NavigatorStandalone).standalone === true
 
     if (isStandalone || isIOSStandalone) {
       setIsInstalled(true)
