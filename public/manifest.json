@@ -1,0 +1,35 @@
+{
+  "name": "Brain Dump Task Manager",
+  "short_name": "Brain Dump",
+  "description": "Capture your thoughts, organize your tasks with AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/brain.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Brain Dump",
+      "short_name": "New Dump",
+      "description": "Start a new brain dump",
+      "url": "/",
+      "icons": [{ "src": "/brain.svg", "sizes": "any" }]
+    },
+    {
+      "name": "View Tasks",
+      "short_name": "Tasks",
+      "description": "View your task list",
+      "url": "/list",
+      "icons": [{ "src": "/brain.svg", "sizes": "any" }]
+    }
+  ],
+  "categories": ["productivity", "utilities"]
+}

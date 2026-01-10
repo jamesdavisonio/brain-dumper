@@ -1,12 +1,54 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTasks } from '@/context/TaskContext'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { parseBrainDump } from '@/services/gemini'
-import { Brain, Loader2, Sparkles, History } from 'lucide-react'
+import { Brain, Loader2, Sparkles, History, Mic, MicOff } from 'lucide-react'
 import { BrainDumpHistoryDialog } from '@/components/screens/BrainDumpHistory'
+
+// Web Speech API types
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+}
+
+interface SpeechRecognitionResultList {
+  length: number
+  item(index: number): SpeechRecognitionResult
+  [index: number]: SpeechRecognitionResult
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean
+  length: number
+  item(index: number): SpeechRecognitionAlternative
+  [index: number]: SpeechRecognitionAlternative
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string
+  confidence: number
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start(): void
+  stop(): void
+  abort(): void
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onend: (() => void) | null
+  onerror: ((event: Event) => void) | null
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition
+    webkitSpeechRecognition: new () => SpeechRecognition
+  }
+}
 
 export function InputScreen() {
   const navigate = useNavigate()
@@ -15,6 +57,80 @@ export function InputScreen() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [speechSupported, setSpeechSupported] = useState(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Check for speech recognition support
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    setSpeechSupported(!!SpeechRecognition)
+  }, [])
+
+  // Keyboard shortcut: Ctrl/Cmd + Enter to process
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && input.trim() && !isProcessing) {
+        e.preventDefault()
+        handleProcess()
+      }
+      // Ctrl/Cmd + M to toggle voice input
+      if ((e.ctrlKey || e.metaKey) && e.key === 'm' && speechSupported) {
+        e.preventDefault()
+        toggleListening()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [input, isProcessing, speechSupported])
+
+  const toggleListening = useCallback(() => {
+    if (!speechSupported) return
+
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    const recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = ''
+      let interimTranscript = ''
+
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i]
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript + ' '
+        } else {
+          interimTranscript += result[0].transcript
+        }
+      }
+
+      if (finalTranscript) {
+        setInput((prev) => prev + finalTranscript)
+      }
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognition.onerror = () => {
+      setIsListening(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+    textareaRef.current?.focus()
+  }, [isListening, speechSupported])
 
   const handleProcess = async () => {
     if (!input.trim()) return
@@ -85,13 +201,42 @@ export function InputScreen() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Textarea
-            placeholder={placeholderText}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="min-h-[300px] resize-none"
-            disabled={isProcessing}
-          />
+          <div className="relative">
+            <Textarea
+              ref={textareaRef}
+              placeholder={placeholderText}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className={`min-h-[300px] resize-none pr-12 ${isListening ? 'ring-2 ring-red-500' : ''}`}
+              disabled={isProcessing}
+            />
+            {speechSupported && (
+              <Button
+                type="button"
+                variant={isListening ? 'destructive' : 'ghost'}
+                size="icon"
+                className="absolute top-2 right-2"
+                onClick={toggleListening}
+                disabled={isProcessing}
+                title={isListening ? 'Stop voice input' : 'Start voice input (Ctrl+M)'}
+              >
+                {isListening ? (
+                  <MicOff className="h-4 w-4" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+            {isListening && (
+              <div className="absolute bottom-2 left-2 flex items-center gap-2 text-sm text-red-500">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                </span>
+                Listening...
+              </div>
+            )}
+          </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -128,7 +273,17 @@ export function InputScreen() {
             <li>• Mention dates like "tomorrow" or "next Friday"</li>
             <li>• Use @project to assign tasks to projects</li>
             <li>• Add time estimates like "30 min" or "2 hours"</li>
+            <li>• Say "every Monday" or "daily" for recurring tasks</li>
           </ul>
+          <div className="mt-4 pt-4 border-t">
+            <h3 className="font-medium mb-2">Keyboard shortcuts:</h3>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded border">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded border">Enter</kbd> — Process with AI</li>
+              {speechSupported && (
+                <li>• <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded border">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded border">M</kbd> — Toggle voice input</li>
+              )}
+            </ul>
+          </div>
         </CardContent>
       </Card>
 

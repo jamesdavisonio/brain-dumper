@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -8,8 +8,9 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Brain, Calendar, ListTodo, Trash2, X } from 'lucide-react'
+import { Brain, Calendar, ListTodo, Search, Trash2, X } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 interface BrainDumpHistoryEntry {
@@ -30,6 +31,7 @@ export function BrainDumpHistoryDialog({
 }: BrainDumpHistoryDialogProps) {
   const [history, setHistory] = useState<BrainDumpHistoryEntry[]>([])
   const [selectedEntry, setSelectedEntry] = useState<BrainDumpHistoryEntry | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (open) {
@@ -37,8 +39,17 @@ export function BrainDumpHistoryDialog({
       if (stored) {
         setHistory(JSON.parse(stored))
       }
+      setSearchQuery('')
     }
   }, [open])
+
+  const filteredHistory = useMemo(() => {
+    if (!searchQuery.trim()) return history
+    const query = searchQuery.toLowerCase()
+    return history.filter((entry) =>
+      entry.content.toLowerCase().includes(query)
+    )
+  }, [history, searchQuery])
 
   const handleDelete = (id: string) => {
     const updated = history.filter((entry) => entry.id !== id)
@@ -79,9 +90,25 @@ export function BrainDumpHistoryDialog({
             </div>
           ) : (
             <>
-              <ScrollArea className="max-h-[400px] pr-4">
-                <div className="space-y-3">
-                  {history.map((entry) => (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search brain dumps..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {filteredHistory.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No results for "{searchQuery}"</p>
+                </div>
+              ) : (
+                <ScrollArea className="max-h-[350px] pr-4">
+                  <div className="space-y-3">
+                    {filteredHistory.map((entry) => (
                     <Card
                       key={entry.id}
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -119,9 +146,10 @@ export function BrainDumpHistoryDialog({
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
-              </ScrollArea>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
 
               <div className="flex justify-end pt-4 border-t">
                 <Button

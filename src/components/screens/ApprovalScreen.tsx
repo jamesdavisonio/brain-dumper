@@ -27,9 +27,39 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Calendar } from '@/components/ui/calendar'
-import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare } from 'lucide-react'
-import type { ParsedTask, Priority } from '@/types'
+import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag } from 'lucide-react'
+import type { ParsedTask, Priority, Recurrence } from '@/types'
 import { cn, formatDate } from '@/lib/utils'
+
+const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance', 'Shopping', 'Home', 'Learning', 'Social', 'Travel', 'Admin'] as const
+
+const RECURRENCE_OPTIONS = [
+  { value: 'none', label: 'No repeat' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+]
+
+function formatRecurrence(recurrence?: Recurrence): string {
+  if (!recurrence) return 'No repeat'
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  if (recurrence.type === 'daily') {
+    return recurrence.interval === 1 ? 'Daily' : `Every ${recurrence.interval} days`
+  }
+  if (recurrence.type === 'weekly') {
+    if (recurrence.daysOfWeek && recurrence.daysOfWeek.length > 0) {
+      const days = recurrence.daysOfWeek.map((d) => dayNames[d]).join(', ')
+      return `Weekly on ${days}`
+    }
+    return recurrence.interval === 1 ? 'Weekly' : `Every ${recurrence.interval} weeks`
+  }
+  if (recurrence.type === 'monthly') {
+    return recurrence.interval === 1 ? 'Monthly' : `Every ${recurrence.interval} months`
+  }
+  return 'Custom'
+}
 
 export function ApprovalScreen() {
   const navigate = useNavigate()
@@ -71,6 +101,16 @@ export function ApprovalScreen() {
     await addProject(newProjectName.trim())
     setSuggestedProjects((prev) => [...prev, newProjectName.trim()])
     setNewProjectName('')
+  }
+
+  const handleRecurrenceChange = (index: number, value: string) => {
+    if (value === 'none') {
+      handleUpdateTask(index, { recurrence: undefined })
+    } else {
+      handleUpdateTask(index, {
+        recurrence: { type: value as 'daily' | 'weekly' | 'monthly', interval: 1 },
+      })
+    }
   }
 
   const handleSubmitFeedback = () => {
@@ -115,6 +155,8 @@ export function ApprovalScreen() {
         priority: task.priority,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
         timeEstimate: task.timeEstimate,
+        recurrence: task.recurrence,
+        category: task.category,
         completed: false,
         archived: false,
         order: index,
@@ -222,7 +264,7 @@ export function ApprovalScreen() {
                       handleUpdateTask(index, { priority: value })
                     }
                   >
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-[110px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -255,7 +297,7 @@ export function ApprovalScreen() {
                       })
                     }
                   >
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-[130px]">
                       <SelectValue placeholder="Project" />
                     </SelectTrigger>
                     <SelectContent>
@@ -268,12 +310,34 @@ export function ApprovalScreen() {
                     </SelectContent>
                   </Select>
 
+                  <Select
+                    value={task.category || 'none'}
+                    onValueChange={(value) =>
+                      handleUpdateTask(index, {
+                        category: value === 'none' ? undefined : value,
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <Tag className="mr-2 h-3 w-3" />
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Category</SelectItem>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          'w-[140px] justify-start text-left font-normal',
+                          'w-[130px] justify-start text-left font-normal',
                           !task.dueDate && 'text-muted-foreground'
                         )}
                       >
@@ -306,6 +370,31 @@ export function ApprovalScreen() {
                       )}
                     </PopoverContent>
                   </Popover>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Select
+                    value={task.recurrence?.type || 'none'}
+                    onValueChange={(value) => handleRecurrenceChange(index, value)}
+                  >
+                    <SelectTrigger className="w-[130px]">
+                      <Repeat className="mr-2 h-3 w-3" />
+                      <SelectValue placeholder="Repeat" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RECURRENCE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {task.recurrence && (
+                    <Badge variant="secondary" className="text-xs">
+                      {formatRecurrence(task.recurrence)}
+                    </Badge>
+                  )}
 
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-muted-foreground" />
@@ -322,6 +411,12 @@ export function ApprovalScreen() {
                       className="w-[80px]"
                     />
                   </div>
+
+                  {task.category && (
+                    <Badge variant="outline" className="text-xs">
+                      {task.category}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardContent>
