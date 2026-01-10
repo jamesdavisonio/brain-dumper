@@ -30,6 +30,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag } from 'lucide-react'
 import type { ParsedTask, Priority, Recurrence } from '@/types'
 import { cn, formatDate } from '@/lib/utils'
+import { useToast } from '@/hooks/useToast'
 
 const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance', 'Shopping', 'Home', 'Learning', 'Social', 'Travel', 'Admin'] as const
 
@@ -64,6 +65,7 @@ function formatRecurrence(recurrence?: Recurrence): string {
 export function ApprovalScreen() {
   const navigate = useNavigate()
   const { bulkAddTasks, addProject, projects } = useTasks()
+  const { toast } = useToast()
   const [tasks, setTasks] = useState<ParsedTask[]>([])
   const [suggestedProjects, setSuggestedProjects] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -183,9 +185,19 @@ export function ApprovalScreen() {
       sessionStorage.removeItem('suggestedProjects')
       sessionStorage.removeItem('originalInput')
 
+      toast({
+        title: 'Tasks saved',
+        description: `${tasksToAdd.length} task${tasksToAdd.length > 1 ? 's' : ''} added successfully.`,
+      })
+
       navigate('/list')
     } catch (error) {
       console.error('Failed to save tasks:', error)
+      toast({
+        title: 'Error saving tasks',
+        description: 'Please try again. Check your internet connection.',
+        variant: 'destructive',
+      })
     } finally {
       setIsSaving(false)
     }

@@ -60,6 +60,8 @@ export function subscribeToTasks(
         createdAt: toDate(data.createdAt) || new Date(),
         updatedAt: toDate(data.updatedAt) || new Date(),
         order: data.order || 0,
+        recurrence: data.recurrence,
+        category: data.category,
       }
     })
     callback(tasks)
