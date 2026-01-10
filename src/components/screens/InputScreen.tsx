@@ -92,7 +92,7 @@ export function InputScreen() {
                 <Brain className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <CardTitle>Brain Dump</CardTitle>
+                <CardTitle>Brain Dumper</CardTitle>
                 <CardDescription>
                   Pour out your thoughts. AI will organize them into tasks.
                 </CardDescription>
