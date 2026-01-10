@@ -1,4 +1,4 @@
-# Brain Dump Task Manager
+# Brain Dumper
 
 A productivity app that lets you dump your thoughts and uses AI to organize them into actionable tasks.
 
@@ -33,7 +33,7 @@ A productivity app that lets you dump your thoughts and uses AI to organize them
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd brain-dump-task-manager
+cd brain-dump
 ```
 
 2. Install dependencies:
