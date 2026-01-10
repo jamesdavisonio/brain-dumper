@@ -181,6 +181,14 @@ export async function createProject(
   return docRef.id
 }
 
+export async function updateProject(
+  id: string,
+  updates: Partial<Pick<Project, 'name' | 'color'>>
+): Promise<void> {
+  const docRef = doc(db, PROJECTS_COLLECTION, id)
+  await updateDoc(docRef, updates)
+}
+
 export async function deleteProject(id: string): Promise<void> {
   await deleteDoc(doc(db, PROJECTS_COLLECTION, id))
 }

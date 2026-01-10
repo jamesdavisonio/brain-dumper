@@ -10,17 +10,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Search, Filter, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, Filter, FolderOpen, ChevronDown, ChevronRight, Edit } from 'lucide-react'
 import type { Priority } from '@/types'
 
 export function ListView() {
-  const { tasks, projects, loading } = useTasks()
+  const { tasks, projects, loading, updateProject } = useTasks()
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all')
   const [projectFilter, setProjectFilter] = useState<string>('all')
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set())
+  const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null)
+  const [newProjectName, setNewProjectName] = useState('')
 
   const toggleProjectCollapse = (projectName: string) => {
     setCollapsedProjects((prev) => {
@@ -32,6 +42,19 @@ export function ListView() {
       }
       return newSet
     })
+  }
+
+  const handleEditProject = (projectId: string, projectName: string) => {
+    setEditingProject({ id: projectId, name: projectName })
+    setNewProjectName(projectName)
+  }
+
+  const handleSaveProjectName = async () => {
+    if (editingProject && newProjectName.trim() && newProjectName !== editingProject.name) {
+      await updateProject(editingProject.id, { name: newProjectName.trim() })
+    }
+    setEditingProject(null)
+    setNewProjectName('')
   }
 
   const activeTasks = useMemo(() => {
@@ -172,27 +195,42 @@ export function ListView() {
 
             return (
               <div key={projectName}>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start mb-3 hover:bg-transparent p-0 h-auto"
-                  onClick={() => toggleProjectCollapse(projectName)}
-                >
-                  <h3
-                    className="font-medium flex items-center gap-2"
-                    style={{ color: project?.color }}
+                <div className="flex items-center justify-between mb-3">
+                  <Button
+                    variant="ghost"
+                    className="flex-1 justify-start hover:bg-transparent p-0 h-auto"
+                    onClick={() => toggleProjectCollapse(projectName)}
                   >
-                    {isCollapsed ? (
-                      <ChevronRight className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: project?.color || '#888' }}
-                    />
-                    {projectName} ({projectTasks.length})
-                  </h3>
-                </Button>
+                    <h3
+                      className="font-medium flex items-center gap-2"
+                      style={{ color: project?.color }}
+                    >
+                      {isCollapsed ? (
+                        <ChevronRight className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: project?.color || '#888' }}
+                      />
+                      {projectName} ({projectTasks.length})
+                    </h3>
+                  </Button>
+                  {project && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditProject(project.id, projectName)
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 {!isCollapsed && (
                   <div className="space-y-3">
                     {projectTasks.map((task) => (
@@ -217,6 +255,34 @@ export function ListView() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Project Dialog */}
+      <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Project Name</DialogTitle>
+            <DialogDescription>
+              Update the name of this project. All tasks will remain associated with it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              placeholder="Project name"
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveProjectName()}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingProject(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProjectName} disabled={!newProjectName.trim()}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
