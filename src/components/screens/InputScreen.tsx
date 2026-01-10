@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { parseBrainDump } from '@/services/gemini'
-import { Brain, Loader2, Sparkles, History, Mic } from 'lucide-react'
+import { Loader2, Sparkles, History, Mic } from 'lucide-react'
 import { BrainDumpHistoryDialog } from '@/components/screens/BrainDumpHistory'
 import { VoiceInputGuide } from '@/components/screens/VoiceInputGuide'
 
