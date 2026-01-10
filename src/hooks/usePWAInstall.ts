@@ -55,8 +55,7 @@ export function usePWAInstall() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     window.addEventListener('appinstalled', handleAppInstalled)
 
-    // Check if the prompt was available before (helps with reinstall scenarios)
-    const wasInstallAvailable = localStorage.getItem('pwa-install-available') === 'true'
+    // Check if previously installed (helps with reinstall scenarios)
     const wasInstalled = localStorage.getItem('pwa-installed') === 'true'
 
     // If previously installed but not in standalone mode now, user likely uninstalled
