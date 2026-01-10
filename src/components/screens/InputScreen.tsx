@@ -55,6 +55,17 @@ export function InputScreen() {
       )
       sessionStorage.setItem('originalInput', input)
 
+      // Save to brain dump history immediately after processing
+      const history = JSON.parse(localStorage.getItem('brainDumpHistory') || '[]')
+      history.unshift({
+        id: Date.now().toString(),
+        content: input,
+        createdAt: new Date().toISOString(),
+        taskCount: result.tasks.length,
+      })
+      // Keep only last 50 entries
+      localStorage.setItem('brainDumpHistory', JSON.stringify(history.slice(0, 50)))
+
       navigate('/approve')
     } catch (err) {
       setError('Failed to process. Please try again.')

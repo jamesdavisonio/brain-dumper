@@ -299,7 +299,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-3">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

@@ -169,19 +169,8 @@ export function ApprovalScreen() {
 
       await bulkAddTasks(tasksToAdd)
 
-      // Save to brain dump history
-      const originalInput = sessionStorage.getItem('originalInput')
-      if (originalInput) {
-        const history = JSON.parse(localStorage.getItem('brainDumpHistory') || '[]')
-        history.unshift({
-          id: Date.now().toString(),
-          content: originalInput,
-          createdAt: new Date().toISOString(),
-          taskCount: tasks.length,
-        })
-        // Keep only last 50 entries
-        localStorage.setItem('brainDumpHistory', JSON.stringify(history.slice(0, 50)))
-      }
+      // History is now saved immediately after processing in InputScreen
+      // No need to save again here
 
       // Clear session storage
       sessionStorage.removeItem('parsedTasks')
@@ -533,7 +522,7 @@ export function ApprovalScreen() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-3">
               <Button variant="outline" onClick={() => setShowEditDialog(false)}>
                 Cancel
               </Button>
