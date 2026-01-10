@@ -20,7 +20,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { addDays, format, startOfWeek, isSameDay } from 'date-fns'
+import { addDays, format, isSameDay, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
 import type { Task } from '@/types'
 
@@ -65,14 +65,16 @@ export function TimelineView() {
     })
   )
 
-  const weekStart = useMemo(() => {
-    const today = new Date()
-    return addDays(startOfWeek(today, { weekStartsOn: 1 }), weekOffset * 7)
+  // Start from today (or today + offset weeks)
+  const startDate = useMemo(() => {
+    const today = startOfDay(new Date())
+    return addDays(today, weekOffset * 7)
   }, [weekOffset])
 
+  // Show 7 days starting from the start date
   const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
-  }, [weekStart])
+    return Array.from({ length: 7 }, (_, i) => addDays(startDate, i))
+  }, [startDate])
 
   const unscheduledTasks = useMemo(() => {
     return tasks.filter((t) => !t.archived && !t.completed && !t.scheduledDate)
@@ -119,6 +121,23 @@ export function TimelineView() {
     }
   }
 
+  // Format the date range for the header
+  const getHeaderText = () => {
+    const today = startOfDay(new Date())
+    if (weekOffset === 0) {
+      return 'This Week'
+    } else if (weekOffset === 1) {
+      return 'Next Week'
+    } else if (weekOffset === -1) {
+      return 'Last Week'
+    }
+    const endDate = addDays(startDate, 6)
+    if (isSameDay(startDate, today)) {
+      return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`
+    }
+    return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -135,9 +154,7 @@ export function TimelineView() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">
-          Week of {format(weekStart, 'MMM d, yyyy')}
-        </h1>
+        <h1 className="text-xl font-semibold">{getHeaderText()}</h1>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -204,8 +221,9 @@ export function TimelineView() {
               >
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm">
-                    <span className={isToday ? 'text-primary' : ''}>
+                    <span className={isToday ? 'text-primary font-bold' : ''}>
                       {format(day, 'EEE')}
+                      {isToday && ' (Today)'}
                     </span>
                     <span className="block text-xs text-muted-foreground">
                       {format(day, 'MMM d')}
