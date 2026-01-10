@@ -1,16 +1,76 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import type { BrainDumpResult, ParsedTask, Priority } from '@/types'
+import type { BrainDumpResult, ParsedTask, Priority, Recurrence } from '@/types'
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '')
 
-const SYSTEM_PROMPT = `You are a task parser for a productivity app. Your job is to take a "brain dump" of unstructured text and extract individual tasks.
+interface FeedbackEntry {
+  feedback: string
+  createdAt: string
+}
+
+function getRecentFeedback(): string {
+  try {
+    const feedbackHistory = JSON.parse(localStorage.getItem('parsingFeedback') || '[]') as FeedbackEntry[]
+    if (feedbackHistory.length === 0) return ''
+
+    // Get last 5 feedback entries
+    const recentFeedback = feedbackHistory.slice(0, 5).map((f) => `- ${f.feedback}`).join('\n')
+    return `\nUSER FEEDBACK FROM PREVIOUS SESSIONS (apply these corrections):
+${recentFeedback}\n`
+  } catch {
+    return ''
+  }
+}
+
+const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance', 'Shopping', 'Home', 'Learning', 'Social', 'Travel', 'Admin']
+
+function getSystemPrompt(existingProjects: string[]): string {
+  const now = new Date()
+  const currentDate = now.toISOString().split('T')[0]
+  const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' })
+
+  const projectsSection = existingProjects.length > 0
+    ? `\nEXISTING PROJECTS: ${existingProjects.join(', ')}
+When assigning tasks to projects, use EXACT names from this list when the user mentions something similar.
+For example, if "Aria" exists and user writes "Area", use "Aria".
+Only suggest new projects if they don't match any existing ones.\n`
+    : ''
+
+  const feedbackSection = getRecentFeedback()
+
+  return `You are a task parser for a productivity app. Your job is to take a "brain dump" of unstructured text and extract individual tasks.
+${feedbackSection}
+
+IMPORTANT: Today is ${dayOfWeek}, ${currentDate}. Use this date as reference for all relative dates.
+- "today" = ${currentDate}
+- "tomorrow" = the next day after ${currentDate}
+- When a day name is mentioned (Monday, Tuesday, etc.), it ALWAYS means the NEXT occurrence of that day in the FUTURE:
+  * If today is Monday and user says "Monday", that means NEXT Monday (7 days from now), NOT today
+  * If today is Tuesday and user says "Monday", that means the upcoming Monday (6 days from now)
+  * The mentioned day is NEVER today - always at least 1 day in the future for the same day name
+- "next week" = 7 days from ${currentDate}
+- "this weekend" = the upcoming Saturday/Sunday
+${projectsSection}
+CATEGORIES for auto-categorization: ${CATEGORIES.join(', ')}
+Assign the most appropriate category to each task based on its content.
+
+RECURRENCE patterns to detect:
+- "every day", "daily" → { type: "daily", interval: 1 }
+- "every week", "weekly" → { type: "weekly", interval: 1 }
+- "every Monday" → { type: "weekly", interval: 1, daysOfWeek: [1] }
+- "every Mon and Wed" → { type: "weekly", interval: 1, daysOfWeek: [1, 3] }
+- "every month", "monthly" → { type: "monthly", interval: 1 }
+- "every 2 weeks" → { type: "weekly", interval: 2 }
+Days of week numbers: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
 
 For each task, identify:
 1. The task content (what needs to be done)
-2. Any project it belongs to (if mentioned)
+2. Any project it belongs to (if mentioned) - match to existing projects when possible
 3. Priority (high, medium, low) - infer from urgency words
-4. Due date (if mentioned, as ISO date string)
+4. Due date (if mentioned, as ISO date string YYYY-MM-DD format)
 5. Time estimate in minutes (if mentioned or you can reasonably estimate)
+6. Recurrence pattern (if this is a repeating task)
+7. Category (auto-assign based on task content)
 
 Priority inference rules:
 - "urgent", "asap", "immediately", "critical" → high
@@ -25,8 +85,10 @@ Return a JSON object with this structure:
       "content": "Task description",
       "project": "Project name or null",
       "priority": "high|medium|low",
-      "dueDate": "2024-01-15 or null",
-      "timeEstimate": 30
+      "dueDate": "YYYY-MM-DD or null",
+      "timeEstimate": 30,
+      "recurrence": { "type": "weekly", "interval": 1, "daysOfWeek": [1] } or null,
+      "category": "Work|Personal|Health|Finance|Shopping|Home|Learning|Social|Travel|Admin"
     }
   ],
   "suggestedProjects": ["Project1", "Project2"]
@@ -35,8 +97,12 @@ Return a JSON object with this structure:
 Be concise in task descriptions. Extract the actionable item.
 If the input is unclear or empty, return an empty tasks array.
 Only return valid JSON, no markdown or explanation.`
+}
 
-export async function parseBrainDump(text: string): Promise<BrainDumpResult> {
+export async function parseBrainDump(
+  text: string,
+  existingProjects: string[] = []
+): Promise<BrainDumpResult> {
   if (!text.trim()) {
     return { tasks: [], suggestedProjects: [] }
   }
@@ -45,7 +111,7 @@ export async function parseBrainDump(text: string): Promise<BrainDumpResult> {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
     const result = await model.generateContent([
-      { text: SYSTEM_PROMPT },
+      { text: getSystemPrompt(existingProjects) },
       { text: `Parse this brain dump:\n\n${text}` },
     ])
 
@@ -67,6 +133,8 @@ export async function parseBrainDump(text: string): Promise<BrainDumpResult> {
       priority: validatePriority(task.priority),
       dueDate: task.dueDate ? String(task.dueDate) : undefined,
       timeEstimate: typeof task.timeEstimate === 'number' ? task.timeEstimate : undefined,
+      recurrence: validateRecurrence(task.recurrence),
+      category: validateCategory(task.category),
     }))
 
     const suggestedProjects: string[] = (parsed.suggestedProjects || [])
@@ -76,7 +144,7 @@ export async function parseBrainDump(text: string): Promise<BrainDumpResult> {
   } catch (error) {
     console.error('Error parsing brain dump with Gemini:', error)
     // Fallback to simple parsing
-    return fallbackParser(text)
+    return fallbackParser(text, existingProjects)
   }
 }
 
@@ -87,11 +155,42 @@ function validatePriority(priority: unknown): Priority {
   return 'medium'
 }
 
+function validateRecurrence(recurrence: unknown): Recurrence | undefined {
+  if (!recurrence || typeof recurrence !== 'object') return undefined
+
+  const rec = recurrence as Record<string, unknown>
+  const type = rec.type
+
+  if (type !== 'daily' && type !== 'weekly' && type !== 'monthly' && type !== 'custom') {
+    return undefined
+  }
+
+  const result: Recurrence = {
+    type,
+    interval: typeof rec.interval === 'number' ? rec.interval : 1,
+  }
+
+  if (Array.isArray(rec.daysOfWeek)) {
+    result.daysOfWeek = rec.daysOfWeek.filter((d): d is number => typeof d === 'number' && d >= 0 && d <= 6)
+  }
+
+  return result
+}
+
+function validateCategory(category: unknown): string | undefined {
+  if (typeof category !== 'string') return undefined
+  if (CATEGORIES.includes(category)) return category
+  return undefined
+}
+
 // Fallback parser when Gemini is unavailable
-function fallbackParser(text: string): BrainDumpResult {
+function fallbackParser(text: string, existingProjects: string[] = []): BrainDumpResult {
   const lines = text.split('\n').filter((line) => line.trim())
   const tasks: ParsedTask[] = []
   const projectSet = new Set<string>()
+
+  // Create lowercase map for fuzzy matching
+  const projectMap = new Map(existingProjects.map((p) => [p.toLowerCase(), p]))
 
   for (const line of lines) {
     const trimmed = line.trim()
@@ -126,8 +225,36 @@ function fallbackParser(text: string): BrainDumpResult {
     let project: string | undefined
     const projectMatch = content.match(/@(\w+)/) || content.match(/\[([^\]]+)\]/)
     if (projectMatch) {
-      project = projectMatch[1]
+      const mentioned = projectMatch[1]
+      // Try to match to existing project
+      project = projectMap.get(mentioned.toLowerCase()) || mentioned
       projectSet.add(project)
+    }
+
+    // Detect recurrence patterns
+    let recurrence: Recurrence | undefined
+    if (lowerContent.includes('every day') || lowerContent.includes('daily')) {
+      recurrence = { type: 'daily', interval: 1 }
+    } else if (lowerContent.includes('every week') || lowerContent.includes('weekly')) {
+      recurrence = { type: 'weekly', interval: 1 }
+    } else if (lowerContent.includes('every month') || lowerContent.includes('monthly')) {
+      recurrence = { type: 'monthly', interval: 1 }
+    }
+
+    // Simple category detection
+    let category: string | undefined
+    if (lowerContent.includes('work') || lowerContent.includes('meeting') || lowerContent.includes('project')) {
+      category = 'Work'
+    } else if (lowerContent.includes('gym') || lowerContent.includes('exercise') || lowerContent.includes('doctor')) {
+      category = 'Health'
+    } else if (lowerContent.includes('buy') || lowerContent.includes('shop') || lowerContent.includes('groceries')) {
+      category = 'Shopping'
+    } else if (lowerContent.includes('pay') || lowerContent.includes('bill') || lowerContent.includes('bank')) {
+      category = 'Finance'
+    } else if (lowerContent.includes('clean') || lowerContent.includes('fix') || lowerContent.includes('home')) {
+      category = 'Home'
+    } else {
+      category = 'Personal'
     }
 
     tasks.push({
@@ -137,6 +264,8 @@ function fallbackParser(text: string): BrainDumpResult {
         .trim(),
       project,
       priority,
+      recurrence,
+      category,
     })
   }
 

@@ -9,6 +9,7 @@ import { ApprovalScreen } from '@/components/screens/ApprovalScreen'
 import { ListView } from '@/components/screens/ListView'
 import { TimelineView } from '@/components/screens/TimelineView'
 import { ArchiveView } from '@/components/screens/ArchiveView'
+import { AnalyticsView } from '@/components/screens/AnalyticsView'
 
 function AppRoutes() {
   return (
@@ -18,6 +19,7 @@ function AppRoutes() {
         <Route path="/approve" element={<ApprovalScreen />} />
         <Route path="/list" element={<ListView />} />
         <Route path="/timeline" element={<TimelineView />} />
+        <Route path="/analytics" element={<AnalyticsView />} />
         <Route path="/archive" element={<ArchiveView />} />
       </Routes>
     </Layout>

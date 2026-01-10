@@ -1,5 +1,14 @@
 export type Priority = 'high' | 'medium' | 'low'
 
+export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'custom'
+
+export interface Recurrence {
+  type: RecurrenceType
+  interval: number // every X days/weeks/months
+  daysOfWeek?: number[] // 0=Sunday, 1=Monday, etc. for weekly
+  endDate?: Date
+}
+
 export interface Task {
   id: string
   content: string
@@ -14,6 +23,8 @@ export interface Task {
   createdAt: Date
   updatedAt: Date
   order: number
+  recurrence?: Recurrence
+  category?: string // auto-categorized
 }
 
 export interface Project {
@@ -37,6 +48,8 @@ export interface ParsedTask {
   priority: Priority
   dueDate?: string
   timeEstimate?: number
+  recurrence?: Recurrence
+  category?: string
 }
 
 export interface BrainDumpResult {
@@ -75,3 +88,37 @@ export interface AuthContextType {
   signIn: () => Promise<void>
   signOut: () => Promise<void>
 }
+
+// Analytics types
+export interface TaskStats {
+  totalTasks: number
+  completedTasks: number
+  archivedTasks: number
+  tasksByProject: Record<string, number>
+  tasksByPriority: Record<Priority, number>
+  tasksByCategory: Record<string, number>
+  completionRate: number
+  averageCompletionTime?: number
+}
+
+export interface WeeklyStats {
+  week: string
+  completed: number
+  created: number
+}
+
+// Categories for auto-categorization
+export const TASK_CATEGORIES = [
+  'Work',
+  'Personal',
+  'Health',
+  'Finance',
+  'Shopping',
+  'Home',
+  'Learning',
+  'Social',
+  'Travel',
+  'Admin',
+] as const
+
+export type TaskCategory = typeof TASK_CATEGORIES[number]
