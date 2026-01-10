@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Brain, Calendar, ListTodo, Search, Trash2, X } from 'lucide-react'
+import { Brain, Calendar, ListTodo, Search, Trash2, X, RefreshCw } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 interface BrainDumpHistoryEntry {
@@ -23,11 +23,13 @@ interface BrainDumpHistoryEntry {
 interface BrainDumpHistoryDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onReprocess?: (content: string) => void
 }
 
 export function BrainDumpHistoryDialog({
   open,
   onOpenChange,
+  onReprocess,
 }: BrainDumpHistoryDialogProps) {
   const [history, setHistory] = useState<BrainDumpHistoryEntry[]>([])
   const [selectedEntry, setSelectedEntry] = useState<BrainDumpHistoryEntry | null>(null)
@@ -64,6 +66,14 @@ export function BrainDumpHistoryDialog({
     setHistory([])
     localStorage.removeItem('brainDumpHistory')
     setSelectedEntry(null)
+  }
+
+  const handleReprocess = (content: string) => {
+    if (onReprocess) {
+      onReprocess(content)
+      setSelectedEntry(null)
+      onOpenChange(false)
+    }
   }
 
   return (
@@ -199,11 +209,24 @@ export function BrainDumpHistoryDialog({
           </DialogHeader>
 
           {selectedEntry && (
-            <ScrollArea className="max-h-[400px]">
-              <div className="whitespace-pre-wrap text-sm bg-muted/50 p-4 rounded-lg">
-                {selectedEntry.content}
-              </div>
-            </ScrollArea>
+            <>
+              <ScrollArea className="max-h-[400px]">
+                <div className="whitespace-pre-wrap text-sm bg-muted/50 p-4 rounded-lg">
+                  {selectedEntry.content}
+                </div>
+              </ScrollArea>
+              {onReprocess && (
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleReprocess(selectedEntry.content)}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reprocess
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>

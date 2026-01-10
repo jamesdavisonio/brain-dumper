@@ -8,6 +8,7 @@ import {
   deleteTask as deleteTaskService,
   bulkCreateTasks,
   createProject,
+  updateProject as updateProjectService,
   deleteProject as deleteProjectService,
 } from '@/services/firestore'
 import type { Task, Project, TaskContextType } from '@/types'
@@ -89,6 +90,15 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateProject = async (id: string, updates: { name?: string; color?: string }) => {
+    try {
+      await updateProjectService(id, updates)
+    } catch (err) {
+      setError('Failed to update project')
+      console.error(err)
+    }
+  }
+
   const deleteProject = async (id: string) => {
     try {
       await deleteProjectService(id)
@@ -125,6 +135,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         updateTask,
         deleteTask,
         addProject,
+        updateProject,
         deleteProject,
         bulkAddTasks,
       }}

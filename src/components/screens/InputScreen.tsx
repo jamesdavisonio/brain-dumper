@@ -64,6 +64,15 @@ export function InputScreen() {
     }
   }
 
+  const handleReprocess = (content: string) => {
+    setInput(content)
+    setShowHistory(false)
+    // Focus the textarea after a short delay to ensure the dialog is closed
+    setTimeout(() => {
+      textareaRef.current?.focus()
+    }, 100)
+  }
+
   const placeholderText = `Example:
 - Need to finish the quarterly report by Friday, it's urgent
 - Call mom tomorrow about her birthday party
@@ -159,7 +168,7 @@ export function InputScreen() {
             <li>• Add time estimates like "30 min" or "2 hours"</li>
             <li>• Say "every Monday" or "daily" for recurring tasks</li>
           </ul>
-          <div className="mt-4 pt-4 border-t">
+          <div className="mt-4 pt-4 border-t hidden md:block">
             <h3 className="font-medium mb-2">Keyboard shortcuts:</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded border">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded border">Enter</kbd> — Process with AI</li>
@@ -168,7 +177,11 @@ export function InputScreen() {
         </CardContent>
       </Card>
 
-      <BrainDumpHistoryDialog open={showHistory} onOpenChange={setShowHistory} />
+      <BrainDumpHistoryDialog
+        open={showHistory}
+        onOpenChange={setShowHistory}
+        onReprocess={handleReprocess}
+      />
       <VoiceInputGuide open={showVoiceGuide} onOpenChange={setShowVoiceGuide} />
     </div>
   )
