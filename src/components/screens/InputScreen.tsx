@@ -1,0 +1,121 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { parseBrainDump } from '@/services/gemini'
+import { Brain, Loader2, Sparkles } from 'lucide-react'
+import type { ParsedTask } from '@/types'
+
+export function InputScreen() {
+  const navigate = useNavigate()
+  const [input, setInput] = useState('')
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleProcess = async () => {
+    if (!input.trim()) return
+
+    setIsProcessing(true)
+    setError(null)
+
+    try {
+      const result = await parseBrainDump(input)
+
+      if (result.tasks.length === 0) {
+        setError('No tasks could be extracted. Try adding more detail.')
+        return
+      }
+
+      // Store parsed tasks in session storage for approval screen
+      sessionStorage.setItem('parsedTasks', JSON.stringify(result.tasks))
+      sessionStorage.setItem(
+        'suggestedProjects',
+        JSON.stringify(result.suggestedProjects)
+      )
+      sessionStorage.setItem('originalInput', input)
+
+      navigate('/approve')
+    } catch (err) {
+      setError('Failed to process. Please try again.')
+      console.error(err)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const placeholderText = `Example:
+- Need to finish the quarterly report by Friday, it's urgent
+- Call mom tomorrow about her birthday party
+- Buy groceries - milk, eggs, bread
+- Eventually clean out the garage
+- Schedule dentist appointment for next week
+- Research vacation spots for summer @personal
+- Fix the bug in the login page, critical for launch`
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Brain className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>Brain Dump</CardTitle>
+              <CardDescription>
+                Pour out your thoughts. AI will organize them into tasks.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            placeholder={placeholderText}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="min-h-[300px] resize-none"
+            disabled={isProcessing}
+          />
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {input.length} characters
+            </p>
+            <Button
+              onClick={handleProcess}
+              disabled={!input.trim() || isProcessing}
+              size="lg"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Process with AI
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-muted/50">
+        <CardContent className="pt-6">
+          <h3 className="font-medium mb-2">Tips for better results:</h3>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• Use words like "urgent" or "eventually" to set priority</li>
+            <li>• Mention dates like "tomorrow" or "next Friday"</li>
+            <li>• Use @project to assign tasks to projects</li>
+            <li>• Add time estimates like "30 min" or "2 hours"</li>
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
