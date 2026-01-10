@@ -64,8 +64,20 @@ export function InputScreen() {
 
   // Check for speech recognition support
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    setSpeechSupported(!!SpeechRecognition)
+    // Check on mount and also handle dynamic availability
+    const checkSpeechSupport = () => {
+      const supported = !!(
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition ||
+        (window as unknown as Record<string, unknown>).SpeechRecognition ||
+        (window as unknown as Record<string, unknown>).webkitSpeechRecognition
+      )
+      setSpeechSupported(supported)
+    }
+    checkSpeechSupport()
+    // Re-check after a short delay for mobile browsers
+    const timer = setTimeout(checkSpeechSupport, 500)
+    return () => clearTimeout(timer)
   }, [])
 
   // Keyboard shortcut: Ctrl/Cmd + Enter to process
@@ -122,8 +134,12 @@ export function InputScreen() {
       setIsListening(false)
     }
 
-    recognition.onerror = () => {
+    recognition.onerror = (event: Event) => {
       setIsListening(false)
+      const errorEvent = event as Event & { error?: string }
+      if (errorEvent.error === 'not-allowed') {
+        setError('Microphone access denied. Please allow microphone permission.')
+      }
     }
 
     recognitionRef.current = recognition

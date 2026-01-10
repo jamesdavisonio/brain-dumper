@@ -7,12 +7,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Brain, Moon, Sun, LogOut, User } from 'lucide-react'
+import { Brain, Moon, Sun, LogOut, User, Download } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
 
 export function Header() {
   const { user, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
+  const { canInstall, install } = usePWAInstall()
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -57,6 +59,15 @@ export function Header() {
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
                 <DropdownMenuSeparator />
+                {canInstall && (
+                  <>
+                    <DropdownMenuItem onClick={install}>
+                      <Download className="mr-2 h-4 w-4" />
+                      Install App
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out

@@ -3,32 +3,54 @@
   "short_name": "Brain Dump",
   "description": "Capture your thoughts, organize your tasks with AI",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6366f1",
   "orientation": "portrait-primary",
   "icons": [
     {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/brain.svg",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/svg+xml"
     }
   ],
   "shortcuts": [
     {
       "name": "New Brain Dump",
-      "short_name": "New Dump",
+      "short_name": "Dump",
       "description": "Start a new brain dump",
-      "url": "/",
-      "icons": [{ "src": "/brain.svg", "sizes": "any" }]
+      "url": "/"
     },
     {
       "name": "View Tasks",
       "short_name": "Tasks",
       "description": "View your task list",
-      "url": "/list",
-      "icons": [{ "src": "/brain.svg", "sizes": "any" }]
+      "url": "/list"
     }
   ],
   "categories": ["productivity", "utilities"]
