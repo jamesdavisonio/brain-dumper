@@ -47,7 +47,7 @@ export function Header() {
       <div className="container flex h-14 items-center">
         <div className="flex items-center gap-2">
           <Brain className="h-6 w-6 text-primary" />
-          <span className="font-semibold">Brain Dump</span>
+          <span className="font-semibold">Brain Dumper</span>
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
@@ -117,7 +117,7 @@ export function Header() {
       <Dialog open={showInstallInstructions} onOpenChange={setShowInstallInstructions}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Install Brain Dump</DialogTitle>
+            <DialogTitle>Install Brain Dumper</DialogTitle>
             <DialogDescription>
               {isIOSDevice
                 ? "To install this app on your iPhone or iPad:"

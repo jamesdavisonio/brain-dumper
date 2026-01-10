@@ -1,6 +1,6 @@
 {
-  "name": "Brain Dump Task Manager",
-  "short_name": "Brain Dump",
+  "name": "Brain Dumper",
+  "short_name": "Brain Dumper",
   "description": "Capture your thoughts, organize your tasks with AI",
   "start_url": "/",
   "scope": "/",
@@ -41,7 +41,7 @@
   ],
   "shortcuts": [
     {
-      "name": "New Brain Dump",
+      "name": "New Brain Dumper",
       "short_name": "Dump",
       "description": "Start a new brain dump",
       "url": "/"

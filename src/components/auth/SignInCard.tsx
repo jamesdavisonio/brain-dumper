@@ -31,7 +31,7 @@ export function SignInCard() {
               <Brain className="h-10 w-10 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Brain Dump</CardTitle>
+          <CardTitle className="text-2xl">Brain Dumper</CardTitle>
           <CardDescription>
             Capture your thoughts, organize your tasks. Let AI help you stay productive.
           </CardDescription>

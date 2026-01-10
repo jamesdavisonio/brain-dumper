@@ -83,7 +83,7 @@ export function BrainDumpHistoryDialog({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5" />
-              Brain Dump History
+              Brain Dumper History
             </DialogTitle>
             <DialogDescription>
               View your previous brain dumps. Click to read the full content.
@@ -184,7 +184,7 @@ export function BrainDumpHistoryDialog({
             <div className="flex items-center justify-between">
               <DialogTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5" />
-                Brain Dump
+                Brain Dumper
               </DialogTitle>
               <Button
                 variant="ghost"
