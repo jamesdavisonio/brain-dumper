@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import {
@@ -7,14 +8,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Brain, Moon, Sun, LogOut, User, Download } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Brain, Moon, Sun, LogOut, User, Download, Share } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 
 export function Header() {
   const { user, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const { canInstall, install } = usePWAInstall()
+  const { canInstall, isIOSDevice, install } = usePWAInstall()
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false)
+
+  const handleInstallClick = () => {
+    if (isIOSDevice) {
+      setShowIOSInstructions(true)
+    } else {
+      install()
+    }
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -61,9 +78,18 @@ export function Header() {
                 <DropdownMenuSeparator />
                 {canInstall && (
                   <>
-                    <DropdownMenuItem onClick={install}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Install App
+                    <DropdownMenuItem onClick={handleInstallClick}>
+                      {isIOSDevice ? (
+                        <>
+                          <Share className="mr-2 h-4 w-4" />
+                          Install App
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          Install App
+                        </>
+                      )}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
@@ -77,6 +103,43 @@ export function Header() {
           )}
         </div>
       </div>
+
+      {/* iOS Install Instructions Dialog */}
+      <Dialog open={showIOSInstructions} onOpenChange={setShowIOSInstructions}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Install Brain Dump</DialogTitle>
+            <DialogDescription>
+              To install this app on your iPhone or iPad:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <ol className="list-decimal list-inside space-y-3 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5">1.</span>
+                <span className="flex-1">
+                  Tap the <Share className="inline h-4 w-4 mx-1" /> <strong>Share</strong> button in your browser (usually at the bottom of Safari)
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5">2.</span>
+                <span className="flex-1">
+                  Scroll down and tap <strong>"Add to Home Screen"</strong>
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5">3.</span>
+                <span className="flex-1">
+                  Tap <strong>"Add"</strong> in the top right corner
+                </span>
+              </li>
+            </ol>
+            <p className="text-xs text-muted-foreground mt-4">
+              The app will appear on your home screen and work like a native app!
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   )
 }
