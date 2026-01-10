@@ -2,6 +2,18 @@
 
 A productivity app that lets you dump your thoughts and uses AI to organize them into actionable tasks.
 
+## Recent Updates
+
+### UI Improvements (January 2026)
+- **Cleaner Input Interface**: Replaced character counter with microphone icon for voice input
+- **Mobile-Optimized Navigation**: History button now shows icon-only on mobile devices
+- **Simplified Branding**: Updated main heading to "Dump your thoughts" with clearer subtitle
+- **Streamlined Processing**: Changed button text from "Process with AI" to "Process"
+- **Enhanced Approval Flow**: Added "Review & Approve" title above tasks in approval screen
+- **Better Mobile Layout**: Reduced spacing between task content and action buttons for improved mobile experience
+- **PWA Icon Fix**: Fixed icon display with proper background color
+- **Rebranding**: Updated app name from "Brain Dump" to "Brain Dumper" across the interface
+
 ## Features
 
 - **Brain Dump**: Pour out your thoughts in unstructured text
