@@ -48,6 +48,10 @@ IMPORTANT: Today is ${dayOfWeek}, ${currentDate}. Use this date as reference for
   * If today is Monday and user says "Monday", that means NEXT Monday (7 days from now), NOT today
   * If today is Tuesday and user says "Monday", that means the upcoming Monday (6 days from now)
   * The mentioned day is NEVER today - always at least 1 day in the future for the same day name
+- "before [day]" means the day BEFORE that day:
+  * "before Tuesday" = Monday (the day before the next Tuesday)
+  * "before Friday" = Thursday (the day before the next Friday)
+  * Calculate the next occurrence of the mentioned day, then subtract 1 day
 - "next week" = 7 days from ${currentDate}
 - "this weekend" = the upcoming Saturday/Sunday
 ${projectsSection}

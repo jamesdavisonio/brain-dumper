@@ -25,7 +25,7 @@ import { addDays, format, isSameDay, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
 import type { Task } from '@/types'
 
-function SortableTaskCard({ task }: { task: Task }) {
+function SortableTaskCard({ task, inTimeline = false }: { task: Task; inTimeline?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id })
 
@@ -46,7 +46,7 @@ function SortableTaskCard({ task }: { task: Task }) {
           <GripVertical className="h-4 w-4" />
         </button>
         <div className="flex-1">
-          <TaskCard task={task} />
+          <TaskCard task={task} inTimeline={inTimeline} />
         </div>
       </div>
     </div>
@@ -160,7 +160,7 @@ export function TimelineView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between py-2">
         <h1 className="text-xl font-semibold">{getHeaderText()}</h1>
         <div className="flex items-center gap-2">
           <Button
@@ -245,7 +245,7 @@ export function TimelineView() {
                   >
                     <div className="space-y-2 min-h-[100px]">
                       {dayTasks.map((task) => (
-                        <SortableTaskCard key={task.id} task={task} />
+                        <SortableTaskCard key={task.id} task={task} inTimeline={true} />
                       ))}
                     </div>
                   </SortableContext>
@@ -258,7 +258,7 @@ export function TimelineView() {
         <DragOverlay>
           {activeTask && (
             <div className="opacity-80">
-              <TaskCard task={activeTask} />
+              <TaskCard task={activeTask} inTimeline={true} />
             </div>
           )}
         </DragOverlay>

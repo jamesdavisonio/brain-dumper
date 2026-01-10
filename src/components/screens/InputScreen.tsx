@@ -85,10 +85,10 @@ export function InputScreen() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-6">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Dump your thoughts</CardTitle>
+              <CardTitle className="mb-2">Dump your thoughts</CardTitle>
               <CardDescription>
                 AI will organise them into tasks
               </CardDescription>
@@ -110,28 +110,25 @@ export function InputScreen() {
               placeholder={placeholderText}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="min-h-[300px] resize-none pr-12"
+              className="min-h-[300px] resize-none"
               disabled={isProcessing}
             />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2"
-              onClick={() => setShowVoiceGuide(true)}
-              disabled={isProcessing}
-              title="How to use voice input"
-            >
-              <Mic className="h-4 w-4" />
-            </Button>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Mic className="h-4 w-4" />
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowVoiceGuide(true)}
+              disabled={isProcessing}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Mic className="h-4 w-4 mr-1" />
+              <span className="text-xs">Voice input</span>
+            </Button>
             <Button
               onClick={handleProcess}
               disabled={!input.trim() || isProcessing}

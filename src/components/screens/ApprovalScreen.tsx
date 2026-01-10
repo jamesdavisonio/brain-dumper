@@ -262,7 +262,7 @@ export function ApprovalScreen() {
 
         {/* Task Content */}
         <div className="flex-1 overflow-y-auto flex flex-col">
-          <div className="px-4 pt-4 pb-2">
+          <div className="px-4 pt-6 pb-4">
             <h1 className="text-lg font-semibold">Review & Approve</h1>
           </div>
           <Card className="mx-4 mb-4">
@@ -472,6 +472,66 @@ export function ApprovalScreen() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Due Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !currentTask.dueDate && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {currentTask.dueDate ? formatDate(new Date(currentTask.dueDate)) : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={currentTask.dueDate ? new Date(currentTask.dueDate) : undefined}
+                      onSelect={(date) =>
+                        handleUpdateTask(currentTaskIndex, {
+                          dueDate: date ? date.toISOString().split('T')[0] : undefined,
+                        })
+                      }
+                      initialFocus
+                    />
+                    {currentTask.dueDate && (
+                      <div className="p-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleUpdateTask(currentTaskIndex, { dueDate: undefined })}
+                        >
+                          Clear date
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Time Estimate (minutes)</label>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="e.g., 30"
+                    value={currentTask.timeEstimate || ''}
+                    onChange={(e) =>
+                      handleUpdateTask(currentTaskIndex, {
+                        timeEstimate: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                      })
+                    }
+                  />
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowEditDialog(false)}>
@@ -496,7 +556,7 @@ export function ApprovalScreen() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">Review Tasks</h1>
+            <h1 className="text-xl font-semibold mb-1">Review Tasks</h1>
             <p className="text-sm text-muted-foreground">
               {tasks.length} tasks extracted. Edit before saving.
             </p>
