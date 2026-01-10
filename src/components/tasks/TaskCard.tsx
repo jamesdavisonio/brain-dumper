@@ -20,9 +20,11 @@ import {
   Trash2,
   Archive,
   Flag,
+  Pencil,
 } from 'lucide-react'
 import { cn, formatDate, formatTimeEstimate } from '@/lib/utils'
 import type { Task, Priority } from '@/types'
+import { EditTaskDialog } from './EditTaskDialog'
 
 interface TaskCardProps {
   task: Task
@@ -32,6 +34,7 @@ interface TaskCardProps {
 export function TaskCard({ task, showProject = true }: TaskCardProps) {
   const { updateTask, deleteTask, projects } = useTasks()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   const project = projects.find((p) => p.name === task.project)
 
@@ -100,7 +103,7 @@ export function TaskCard({ task, showProject = true }: TaskCardProps) {
               </Badge>
             )}
 
-            <Badge variant={task.priority} className="text-xs">
+            <Badge variant={task.priority} className="text-xs capitalize">
               {task.priority}
             </Badge>
 
@@ -144,6 +147,11 @@ export function TaskCard({ task, showProject = true }: TaskCardProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Task
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handlePriorityChange('high')}>
                 <Flag className="mr-2 h-4 w-4 text-red-500" />
                 High Priority
@@ -172,6 +180,11 @@ export function TaskCard({ task, showProject = true }: TaskCardProps) {
           </DropdownMenu>
         </div>
       </div>
+      <EditTaskDialog
+        task={task}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
     </Card>
   )
 }

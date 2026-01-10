@@ -27,7 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Calendar } from '@/components/ui/calendar'
-import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag } from 'lucide-react'
+import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag, Edit } from 'lucide-react'
 import type { ParsedTask, Priority, Recurrence } from '@/types'
 import { cn, formatDate } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
@@ -72,6 +72,9 @@ export function ApprovalScreen() {
   const [newProjectName, setNewProjectName] = useState('')
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const [currentTaskIndex, setCurrentTaskIndex] = useState(0)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const isMobile = window.innerWidth < 768
 
   useEffect(() => {
     const storedTasks = sessionStorage.getItem('parsedTasks')
@@ -210,6 +213,23 @@ export function ApprovalScreen() {
     navigate('/')
   }
 
+  const handleApproveTask = () => {
+    if (currentTaskIndex < tasks.length - 1) {
+      setCurrentTaskIndex(currentTaskIndex + 1)
+    } else {
+      // All tasks approved, save them
+      handleSaveAll()
+    }
+  }
+
+  const handleDismissTask = () => {
+    handleRemoveTask(currentTaskIndex)
+    // If we just removed the last task, go back
+    if (currentTaskIndex >= tasks.length - 1 && tasks.length > 1) {
+      setCurrentTaskIndex(Math.max(0, currentTaskIndex - 1))
+    }
+  }
+
   if (tasks.length === 0) {
     return null
   }
@@ -221,6 +241,250 @@ export function ApprovalScreen() {
     ]),
   ]
 
+  const currentTask = tasks[currentTaskIndex]
+
+  // Mobile UI - one task at a time
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-screen bg-background">
+        {/* Header */}
+        <div className="p-4 border-b flex items-center justify-between bg-card">
+          <Button variant="ghost" size="icon" onClick={handleCancel}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="text-center flex-1">
+            <p className="text-sm font-medium">Task {currentTaskIndex + 1} of {tasks.length}</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => setShowEditDialog(true)}>
+            <Edit className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Task Content */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          <Card>
+            <CardContent className="pt-6 space-y-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-2">{currentTask.content}</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Priority</p>
+                  <Badge variant={currentTask.priority} className="capitalize">
+                    {currentTask.priority}
+                  </Badge>
+                </div>
+
+                {currentTask.project && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Project</p>
+                    <Badge variant="outline">{currentTask.project}</Badge>
+                  </div>
+                )}
+
+                {currentTask.category && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Category</p>
+                    <Badge variant="outline">
+                      <Tag className="mr-1 h-3 w-3" />
+                      {currentTask.category}
+                    </Badge>
+                  </div>
+                )}
+
+                {currentTask.dueDate && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Due Date</p>
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{formatDate(new Date(currentTask.dueDate))}</span>
+                    </div>
+                  </div>
+                )}
+
+                {currentTask.timeEstimate && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Time Estimate</p>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{currentTask.timeEstimate} minutes</span>
+                    </div>
+                  </div>
+                )}
+
+                {currentTask.recurrence && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Recurrence</p>
+                    <div className="flex items-center gap-2">
+                      <Repeat className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{formatRecurrence(currentTask.recurrence)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="p-4 border-t bg-card space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleDismissTask}
+              className="h-14"
+            >
+              <X className="mr-2 h-5 w-5" />
+              Dismiss
+            </Button>
+            <Button
+              size="lg"
+              onClick={handleApproveTask}
+              className="h-14"
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Saving...
+                </>
+              ) : currentTaskIndex < tasks.length - 1 ? (
+                <>
+                  <Check className="mr-2 h-5 w-5" />
+                  Approve
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-5 w-5" />
+                  Save All
+                </>
+              )}
+            </Button>
+          </div>
+          {currentTaskIndex < tasks.length - 1 && (
+            <p className="text-xs text-center text-muted-foreground">
+              {tasks.length - currentTaskIndex - 1} more task{tasks.length - currentTaskIndex - 1 !== 1 ? 's' : ''} to review
+            </p>
+          )}
+        </div>
+
+        {/* Edit Dialog for Mobile */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Task Description</label>
+                <Textarea
+                  value={currentTask.content}
+                  onChange={(e) =>
+                    handleUpdateTask(currentTaskIndex, { content: e.target.value })
+                  }
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Priority</label>
+                <Select
+                  value={currentTask.priority}
+                  onValueChange={(value: Priority) =>
+                    handleUpdateTask(currentTaskIndex, { priority: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">
+                      <span className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                        High
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      <span className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                        Medium
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="low">
+                      <span className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        Low
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Project</label>
+                <Select
+                  value={currentTask.project || 'none'}
+                  onValueChange={(value) =>
+                    handleUpdateTask(currentTaskIndex, {
+                      project: value === 'none' ? undefined : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Project</SelectItem>
+                    {allProjects.map((project) => (
+                      <SelectItem key={project} value={project}>
+                        {project}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Category</label>
+                <Select
+                  value={currentTask.category || 'none'}
+                  onValueChange={(value) =>
+                    handleUpdateTask(currentTaskIndex, {
+                      category: value === 'none' ? undefined : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Category</SelectItem>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => setShowEditDialog(false)}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    )
+  }
+
+  // Desktop UI - show all tasks
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">

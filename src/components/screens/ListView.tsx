@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTasks } from '@/context/TaskContext'
 import { TaskCard } from '@/components/tasks/TaskCard'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -11,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Search, Filter, FolderOpen } from 'lucide-react'
+import { Search, Filter, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react'
 import type { Priority } from '@/types'
 
 export function ListView() {
@@ -19,6 +20,19 @@ export function ListView() {
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all')
   const [projectFilter, setProjectFilter] = useState<string>('all')
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set())
+
+  const toggleProjectCollapse = (projectName: string) => {
+    setCollapsedProjects((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(projectName)) {
+        newSet.delete(projectName)
+      } else {
+        newSet.add(projectName)
+      }
+      return newSet
+    })
+  }
 
   const activeTasks = useMemo(() => {
     return tasks
@@ -154,24 +168,38 @@ export function ListView() {
           {Object.entries(tasksByProject).map(([projectName, projectTasks]) => {
             if (projectTasks.length === 0) return null
             const project = projects.find((p) => p.name === projectName)
+            const isCollapsed = collapsedProjects.has(projectName)
 
             return (
               <div key={projectName}>
-                <h3
-                  className="font-medium mb-3 flex items-center gap-2"
-                  style={{ color: project?.color }}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start mb-3 hover:bg-transparent p-0 h-auto"
+                  onClick={() => toggleProjectCollapse(projectName)}
                 >
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: project?.color || '#888' }}
-                  />
-                  {projectName} ({projectTasks.length})
-                </h3>
-                <div className="space-y-3">
-                  {projectTasks.map((task) => (
-                    <TaskCard key={task.id} task={task} showProject={false} />
-                  ))}
-                </div>
+                  <h3
+                    className="font-medium flex items-center gap-2"
+                    style={{ color: project?.color }}
+                  >
+                    {isCollapsed ? (
+                      <ChevronRight className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: project?.color || '#888' }}
+                    />
+                    {projectName} ({projectTasks.length})
+                  </h3>
+                </Button>
+                {!isCollapsed && (
+                  <div className="space-y-3">
+                    {projectTasks.map((task) => (
+                      <TaskCard key={task.id} task={task} showProject={false} />
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}
