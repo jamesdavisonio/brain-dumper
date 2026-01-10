@@ -109,16 +109,21 @@ export function InputScreen() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     const recognition = new SpeechRecognition()
     recognition.continuous = true
-    recognition.interimResults = true
+    recognition.interimResults = false // Only get final results to avoid duplicates
     recognition.lang = 'en-US'
+
+    // Track which results we've already processed
+    let lastResultIndex = 0
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = ''
 
-      for (let i = 0; i < event.results.length; i++) {
+      // Only process new results (from lastResultIndex onwards)
+      for (let i = lastResultIndex; i < event.results.length; i++) {
         const result = event.results[i]
         if (result.isFinal) {
           finalTranscript += result[0].transcript + ' '
+          lastResultIndex = i + 1
         }
       }
 

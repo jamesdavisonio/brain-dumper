@@ -118,13 +118,28 @@ export async function bulkCreateTasks(
 
   tasks.forEach((task) => {
     const docRef = doc(collection(db, TASKS_COLLECTION))
-    batch.set(docRef, {
-      ...task,
-      dueDate: toTimestamp(task.dueDate),
-      scheduledDate: toTimestamp(task.scheduledDate),
+    // Build document data, excluding undefined values (Firestore doesn't accept undefined)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const docData: Record<string, any> = {
+      content: task.content,
+      priority: task.priority,
+      completed: task.completed,
+      archived: task.archived,
+      userId: task.userId,
+      order: task.order,
       createdAt: now,
       updatedAt: now,
-    })
+    }
+
+    // Only add optional fields if they have values
+    if (task.project) docData.project = task.project
+    if (task.dueDate) docData.dueDate = toTimestamp(task.dueDate)
+    if (task.scheduledDate) docData.scheduledDate = toTimestamp(task.scheduledDate)
+    if (task.timeEstimate) docData.timeEstimate = task.timeEstimate
+    if (task.recurrence) docData.recurrence = task.recurrence
+    if (task.category) docData.category = task.category
+
+    batch.set(docRef, docData)
   })
 
   await batch.commit()
