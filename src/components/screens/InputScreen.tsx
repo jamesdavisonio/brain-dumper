@@ -1,16 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTasks } from '@/context/TaskContext'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { parseBrainDump } from '@/services/gemini'
-import { Brain, Loader2, Sparkles } from 'lucide-react'
+import { Brain, Loader2, Sparkles, History } from 'lucide-react'
+import { BrainDumpHistoryDialog } from '@/components/screens/BrainDumpHistory'
 
 export function InputScreen() {
   const navigate = useNavigate()
+  const { projects } = useTasks()
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
 
   const handleProcess = async () => {
     if (!input.trim()) return
@@ -19,7 +23,9 @@ export function InputScreen() {
     setError(null)
 
     try {
-      const result = await parseBrainDump(input)
+      // Pass existing project names to the parser
+      const existingProjectNames = projects.map((p) => p.name)
+      const result = await parseBrainDump(input, existingProjectNames)
 
       if (result.tasks.length === 0) {
         setError('No tasks could be extracted. Try adding more detail.')
@@ -56,16 +62,26 @@ export function InputScreen() {
     <div className="max-w-2xl mx-auto space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Brain className="h-5 w-5 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Brain className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle>Brain Dump</CardTitle>
+                <CardDescription>
+                  Pour out your thoughts. AI will organize them into tasks.
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle>Brain Dump</CardTitle>
-              <CardDescription>
-                Pour out your thoughts. AI will organize them into tasks.
-              </CardDescription>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(true)}
+            >
+              <History className="mr-2 h-4 w-4" />
+              History
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -115,6 +131,8 @@ export function InputScreen() {
           </ul>
         </CardContent>
       </Card>
+
+      <BrainDumpHistoryDialog open={showHistory} onOpenChange={setShowHistory} />
     </div>
   )
 }

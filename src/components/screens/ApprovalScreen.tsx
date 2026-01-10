@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -12,8 +13,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Check, X, ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Calendar } from '@/components/ui/calendar'
+import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare } from 'lucide-react'
 import type { ParsedTask, Priority } from '@/types'
+import { cn, formatDate } from '@/lib/utils'
 
 export function ApprovalScreen() {
   const navigate = useNavigate()
@@ -22,6 +38,8 @@ export function ApprovalScreen() {
   const [suggestedProjects, setSuggestedProjects] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedback, setFeedback] = useState('')
 
   useEffect(() => {
     const storedTasks = sessionStorage.getItem('parsedTasks')
@@ -51,7 +69,28 @@ export function ApprovalScreen() {
   const handleAddProject = async () => {
     if (!newProjectName.trim()) return
     await addProject(newProjectName.trim())
+    setSuggestedProjects((prev) => [...prev, newProjectName.trim()])
     setNewProjectName('')
+  }
+
+  const handleSubmitFeedback = () => {
+    if (!feedback.trim()) {
+      setShowFeedback(false)
+      return
+    }
+
+    // Store feedback for use in future brain dumps
+    const feedbackHistory = JSON.parse(localStorage.getItem('parsingFeedback') || '[]')
+    feedbackHistory.unshift({
+      id: Date.now().toString(),
+      feedback: feedback.trim(),
+      createdAt: new Date().toISOString(),
+    })
+    // Keep only last 10 feedback entries
+    localStorage.setItem('parsingFeedback', JSON.stringify(feedbackHistory.slice(0, 10)))
+
+    setFeedback('')
+    setShowFeedback(false)
   }
 
   const handleSaveAll = async () => {
@@ -82,6 +121,20 @@ export function ApprovalScreen() {
       }))
 
       await bulkAddTasks(tasksToAdd)
+
+      // Save to brain dump history
+      const originalInput = sessionStorage.getItem('originalInput')
+      if (originalInput) {
+        const history = JSON.parse(localStorage.getItem('brainDumpHistory') || '[]')
+        history.unshift({
+          id: Date.now().toString(),
+          content: originalInput,
+          createdAt: new Date().toISOString(),
+          taskCount: tasks.length,
+        })
+        // Keep only last 50 entries
+        localStorage.setItem('brainDumpHistory', JSON.stringify(history.slice(0, 50)))
+      }
 
       // Clear session storage
       sessionStorage.removeItem('parsedTasks')
@@ -116,16 +169,26 @@ export function ApprovalScreen() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleCancel}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-semibold">Review Tasks</h1>
-          <p className="text-sm text-muted-foreground">
-            {tasks.length} tasks extracted. Edit before saving.
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={handleCancel}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold">Review Tasks</h1>
+            <p className="text-sm text-muted-foreground">
+              {tasks.length} tasks extracted. Edit before saving.
+            </p>
+          </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFeedback(true)}
+        >
+          <MessageSquare className="mr-2 h-4 w-4" />
+          Feedback
+        </Button>
       </div>
 
       <div className="space-y-3">
@@ -139,6 +202,7 @@ export function ApprovalScreen() {
                     onChange={(e) =>
                       handleUpdateTask(index, { content: e.target.value })
                     }
+                    placeholder="Task description"
                     className="flex-1"
                   />
                   <Button
@@ -204,13 +268,60 @@ export function ApprovalScreen() {
                     </SelectContent>
                   </Select>
 
-                  {task.dueDate && (
-                    <Badge variant="outline">{task.dueDate}</Badge>
-                  )}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-[140px] justify-start text-left font-normal',
+                          !task.dueDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {task.dueDate ? formatDate(new Date(task.dueDate)) : 'Due date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                        onSelect={(date) =>
+                          handleUpdateTask(index, {
+                            dueDate: date ? date.toISOString().split('T')[0] : undefined,
+                          })
+                        }
+                        initialFocus
+                      />
+                      {task.dueDate && (
+                        <div className="p-2 border-t">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleUpdateTask(index, { dueDate: undefined })}
+                          >
+                            Clear date
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
 
-                  {task.timeEstimate && (
-                    <Badge variant="secondary">{task.timeEstimate}m</Badge>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="mins"
+                      value={task.timeEstimate || ''}
+                      onChange={(e) =>
+                        handleUpdateTask(index, {
+                          timeEstimate: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                        })
+                      }
+                      className="w-[80px]"
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -247,16 +358,20 @@ export function ApprovalScreen() {
       )}
 
       <Card>
-        <CardContent className="pt-4">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Add New Project</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="flex gap-2">
             <Input
-              placeholder="Add new project..."
+              placeholder="Project name..."
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
             />
             <Button onClick={handleAddProject} disabled={!newProjectName.trim()}>
-              <Plus className="h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4" />
+              Add
             </Button>
           </div>
         </CardContent>
@@ -281,6 +396,32 @@ export function ApprovalScreen() {
           )}
         </Button>
       </div>
+
+      {/* Feedback Dialog */}
+      <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>AI Parsing Feedback</DialogTitle>
+            <DialogDescription>
+              Help improve the AI by sharing what it got wrong. Your feedback will be used to improve future brain dumps.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="e.g., 'Missed the urgency in task 2', 'Project name was misspelled', 'Date was wrong for Monday'"
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            className="min-h-[100px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFeedback(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitFeedback}>
+              Submit Feedback
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

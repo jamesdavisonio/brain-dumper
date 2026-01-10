@@ -3,13 +3,54 @@ import type { BrainDumpResult, ParsedTask, Priority } from '@/types'
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '')
 
-const SYSTEM_PROMPT = `You are a task parser for a productivity app. Your job is to take a "brain dump" of unstructured text and extract individual tasks.
+interface FeedbackEntry {
+  feedback: string
+  createdAt: string
+}
 
+function getRecentFeedback(): string {
+  try {
+    const feedbackHistory = JSON.parse(localStorage.getItem('parsingFeedback') || '[]') as FeedbackEntry[]
+    if (feedbackHistory.length === 0) return ''
+
+    // Get last 5 feedback entries
+    const recentFeedback = feedbackHistory.slice(0, 5).map((f) => `- ${f.feedback}`).join('\n')
+    return `\nUSER FEEDBACK FROM PREVIOUS SESSIONS (apply these corrections):
+${recentFeedback}\n`
+  } catch {
+    return ''
+  }
+}
+
+function getSystemPrompt(existingProjects: string[]): string {
+  const now = new Date()
+  const currentDate = now.toISOString().split('T')[0]
+  const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' })
+
+  const projectsSection = existingProjects.length > 0
+    ? `\nEXISTING PROJECTS: ${existingProjects.join(', ')}
+When assigning tasks to projects, use EXACT names from this list when the user mentions something similar.
+For example, if "Aria" exists and user writes "Area", use "Aria".
+Only suggest new projects if they don't match any existing ones.\n`
+    : ''
+
+  const feedbackSection = getRecentFeedback()
+
+  return `You are a task parser for a productivity app. Your job is to take a "brain dump" of unstructured text and extract individual tasks.
+${feedbackSection}
+
+IMPORTANT: Today is ${dayOfWeek}, ${currentDate}. Use this date as reference for all relative dates.
+- "today" = ${currentDate}
+- "tomorrow" = the next day after ${currentDate}
+- "Monday", "Tuesday", etc. = the NEXT occurrence of that day (this week or next week)
+- "next week" = 7 days from ${currentDate}
+- "this weekend" = the upcoming Saturday/Sunday
+${projectsSection}
 For each task, identify:
 1. The task content (what needs to be done)
-2. Any project it belongs to (if mentioned)
+2. Any project it belongs to (if mentioned) - match to existing projects when possible
 3. Priority (high, medium, low) - infer from urgency words
-4. Due date (if mentioned, as ISO date string)
+4. Due date (if mentioned, as ISO date string YYYY-MM-DD format)
 5. Time estimate in minutes (if mentioned or you can reasonably estimate)
 
 Priority inference rules:
@@ -25,7 +66,7 @@ Return a JSON object with this structure:
       "content": "Task description",
       "project": "Project name or null",
       "priority": "high|medium|low",
-      "dueDate": "2024-01-15 or null",
+      "dueDate": "YYYY-MM-DD or null",
       "timeEstimate": 30
     }
   ],
@@ -35,8 +76,12 @@ Return a JSON object with this structure:
 Be concise in task descriptions. Extract the actionable item.
 If the input is unclear or empty, return an empty tasks array.
 Only return valid JSON, no markdown or explanation.`
+}
 
-export async function parseBrainDump(text: string): Promise<BrainDumpResult> {
+export async function parseBrainDump(
+  text: string,
+  existingProjects: string[] = []
+): Promise<BrainDumpResult> {
   if (!text.trim()) {
     return { tasks: [], suggestedProjects: [] }
   }
@@ -45,7 +90,7 @@ export async function parseBrainDump(text: string): Promise<BrainDumpResult> {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
     const result = await model.generateContent([
-      { text: SYSTEM_PROMPT },
+      { text: getSystemPrompt(existingProjects) },
       { text: `Parse this brain dump:\n\n${text}` },
     ])
 
@@ -76,7 +121,7 @@ export async function parseBrainDump(text: string): Promise<BrainDumpResult> {
   } catch (error) {
     console.error('Error parsing brain dump with Gemini:', error)
     // Fallback to simple parsing
-    return fallbackParser(text)
+    return fallbackParser(text, existingProjects)
   }
 }
 
@@ -88,10 +133,13 @@ function validatePriority(priority: unknown): Priority {
 }
 
 // Fallback parser when Gemini is unavailable
-function fallbackParser(text: string): BrainDumpResult {
+function fallbackParser(text: string, existingProjects: string[] = []): BrainDumpResult {
   const lines = text.split('\n').filter((line) => line.trim())
   const tasks: ParsedTask[] = []
   const projectSet = new Set<string>()
+
+  // Create lowercase map for fuzzy matching
+  const projectMap = new Map(existingProjects.map((p) => [p.toLowerCase(), p]))
 
   for (const line of lines) {
     const trimmed = line.trim()
@@ -126,7 +174,9 @@ function fallbackParser(text: string): BrainDumpResult {
     let project: string | undefined
     const projectMatch = content.match(/@(\w+)/) || content.match(/\[([^\]]+)\]/)
     if (projectMatch) {
-      project = projectMatch[1]
+      const mentioned = projectMatch[1]
+      // Try to match to existing project
+      project = projectMap.get(mentioned.toLowerCase()) || mentioned
       projectSet.add(project)
     }
 
