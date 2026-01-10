@@ -5,7 +5,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { parseBrainDump } from '@/services/gemini'
 import { Brain, Loader2, Sparkles } from 'lucide-react'
-import type { ParsedTask } from '@/types'
 
 export function InputScreen() {
   const navigate = useNavigate()
