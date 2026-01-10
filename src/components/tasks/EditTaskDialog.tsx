@@ -24,7 +24,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import { CalendarIcon, Clock, Tag, Repeat } from 'lucide-react'
+import { CalendarIcon, Clock, Tag, Repeat, Plus, Minus } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import type { Task, Priority, Recurrence } from '@/types'
 
@@ -50,7 +50,6 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   const [project, setProject] = useState<string>('')
   const [category, setCategory] = useState<string>('')
   const [dueDate, setDueDate] = useState<Date | undefined>()
-  const [scheduledDate, setScheduledDate] = useState<Date | undefined>()
   const [timeEstimate, setTimeEstimate] = useState<number | undefined>()
   const [recurrence, setRecurrence] = useState<Recurrence | undefined>()
 
@@ -61,7 +60,6 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       setProject(task.project || '')
       setCategory(task.category || '')
       setDueDate(task.dueDate)
-      setScheduledDate(task.scheduledDate)
       setTimeEstimate(task.timeEstimate)
       setRecurrence(task.recurrence)
     }
@@ -76,12 +74,19 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       project: project || undefined,
       category: category || undefined,
       dueDate,
-      scheduledDate,
       timeEstimate,
       recurrence,
     })
 
     onOpenChange(false)
+  }
+
+  const adjustTimeEstimate = (delta: number) => {
+    setTimeEstimate((prev) => {
+      const current = prev || 0
+      const newValue = Math.max(0, current + delta)
+      return newValue === 0 ? undefined : newValue
+    })
   }
 
   const handleRecurrenceChange = (value: string) => {
@@ -163,25 +168,25 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={category || 'none'} onValueChange={(v) => setCategory(v === 'none' ? '' : v)}>
-              <SelectTrigger id="category">
-                <Tag className="mr-2 h-3 w-3" />
-                <SelectValue placeholder="No category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Category</SelectItem>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={category || 'none'} onValueChange={(v) => setCategory(v === 'none' ? '' : v)}>
+                <SelectTrigger id="category">
+                  <Tag className="mr-2 h-3 w-3" />
+                  <SelectValue placeholder="No category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Category</SelectItem>
+                  {CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label>Due Date</Label>
               <Popover>
@@ -219,44 +224,6 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                 </PopoverContent>
               </Popover>
             </div>
-
-            <div className="space-y-2">
-              <Label>Scheduled</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !scheduledDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {scheduledDate ? formatDate(scheduledDate) : 'Pick a date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={scheduledDate}
-                    onSelect={setScheduledDate}
-                    initialFocus
-                  />
-                  {scheduledDate && (
-                    <div className="p-2 border-t">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => setScheduledDate(undefined)}
-                      >
-                        Clear date
-                      </Button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -282,18 +249,40 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
 
             <div className="space-y-2">
               <Label htmlFor="timeEstimate">Time Estimate (mins)</Label>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="timeEstimate"
-                  type="number"
-                  min="0"
-                  placeholder="e.g., 30"
-                  value={timeEstimate || ''}
-                  onChange={(e) =>
-                    setTimeEstimate(e.target.value ? parseInt(e.target.value, 10) : undefined)
-                  }
-                />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => adjustTimeEstimate(-15)}
+                  disabled={!timeEstimate || timeEstimate < 15}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1 flex-1">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="timeEstimate"
+                    type="number"
+                    min="0"
+                    step="15"
+                    placeholder="e.g., 30"
+                    value={timeEstimate || ''}
+                    onChange={(e) =>
+                      setTimeEstimate(e.target.value ? parseInt(e.target.value, 10) : undefined)
+                    }
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => adjustTimeEstimate(15)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
