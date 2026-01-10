@@ -63,3 +63,27 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
     timeout = setTimeout(() => func(...args), wait)
   }
 }
+
+export type OSType = 'android' | 'ios' | 'mac' | 'windows' | 'linux' | 'unknown'
+
+export function detectOS(): OSType {
+  const userAgent = navigator.userAgent.toLowerCase()
+  const platform = navigator.platform.toLowerCase()
+
+  if (/android/.test(userAgent)) {
+    return 'android'
+  }
+  if (/iphone|ipad|ipod/.test(userAgent)) {
+    return 'ios'
+  }
+  if (/mac/.test(platform)) {
+    return 'mac'
+  }
+  if (/win/.test(platform)) {
+    return 'windows'
+  }
+  if (/linux/.test(platform)) {
+    return 'linux'
+  }
+  return 'unknown'
+}
