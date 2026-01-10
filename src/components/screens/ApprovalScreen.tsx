@@ -30,16 +30,9 @@ import { Calendar } from '@/components/ui/calendar'
 import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag, Edit } from 'lucide-react'
 import type { ParsedTask, Priority, Recurrence } from '@/types'
 import { cn, formatDate } from '@/lib/utils'
+import { RECURRENCE_OPTIONS } from '@/lib/constants'
 import { useToast } from '@/hooks/useToast'
-
-const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance', 'Shopping', 'Home', 'Learning', 'Social', 'Travel', 'Admin'] as const
-
-const RECURRENCE_OPTIONS = [
-  { value: 'none', label: 'No repeat' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-]
+import { EditTaskDialog } from '@/components/tasks/EditTaskDialog'
 
 function formatRecurrence(recurrence?: Recurrence): string {
   if (!recurrence) return 'No repeat'
@@ -363,175 +356,15 @@ export function ApprovalScreen() {
         </div>
 
         {/* Edit Dialog for Mobile */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Task</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Task Description</label>
-                <Textarea
-                  value={currentTask.content}
-                  onChange={(e) =>
-                    handleUpdateTask(currentTaskIndex, { content: e.target.value })
-                  }
-                  className="min-h-[80px]"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Priority</label>
-                <Select
-                  value={currentTask.priority}
-                  onValueChange={(value: Priority) =>
-                    handleUpdateTask(currentTaskIndex, { priority: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">
-                      <span className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-red-500" />
-                        High
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="medium">
-                      <span className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                        Medium
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="low">
-                      <span className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-green-500" />
-                        Low
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Project</label>
-                <Select
-                  value={currentTask.project || 'none'}
-                  onValueChange={(value) =>
-                    handleUpdateTask(currentTaskIndex, {
-                      project: value === 'none' ? undefined : value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Project</SelectItem>
-                    {allProjects.map((project) => (
-                      <SelectItem key={project} value={project}>
-                        {project}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Category</label>
-                <Select
-                  value={currentTask.category || 'none'}
-                  onValueChange={(value) =>
-                    handleUpdateTask(currentTaskIndex, {
-                      category: value === 'none' ? undefined : value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Category</SelectItem>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Due Date</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !currentTask.dueDate && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {currentTask.dueDate ? formatDate(new Date(currentTask.dueDate)) : 'Pick a date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={currentTask.dueDate ? new Date(currentTask.dueDate) : undefined}
-                      onSelect={(date) =>
-                        handleUpdateTask(currentTaskIndex, {
-                          dueDate: date ? date.toISOString().split('T')[0] : undefined,
-                        })
-                      }
-                      initialFocus
-                    />
-                    {currentTask.dueDate && (
-                      <div className="p-2 border-t">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => handleUpdateTask(currentTaskIndex, { dueDate: undefined })}
-                        >
-                          Clear date
-                        </Button>
-                      </div>
-                    )}
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Time Estimate (minutes)</label>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="e.g., 30"
-                    value={currentTask.timeEstimate || ''}
-                    onChange={(e) =>
-                      handleUpdateTask(currentTaskIndex, {
-                        timeEstimate: e.target.value ? parseInt(e.target.value, 10) : undefined,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter className="gap-3">
-              <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => setShowEditDialog(false)}>
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <EditTaskDialog
+          task={currentTask}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          availableProjects={allProjects}
+          onSave={(updates) => {
+            handleUpdateTask(currentTaskIndex, updates)
+          }}
+        />
       </div>
     )
   }

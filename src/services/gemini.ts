@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { BrainDumpResult, ParsedTask, Priority, Recurrence } from '@/types'
+import { CATEGORIES } from '@/lib/constants'
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '')
 
@@ -21,8 +22,6 @@ ${recentFeedback}\n`
     return ''
   }
 }
-
-const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance', 'Shopping', 'Home', 'Learning', 'Social', 'Travel', 'Admin']
 
 function getSystemPrompt(existingProjects: string[]): string {
   const now = new Date()

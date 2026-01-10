@@ -26,25 +26,30 @@ import {
 import { Calendar } from '@/components/ui/calendar'
 import { CalendarIcon, Clock, Tag, Repeat, Plus, Minus } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
+import { CATEGORIES, RECURRENCE_OPTIONS } from '@/lib/constants'
 import type { Task, Priority, Recurrence } from '@/types'
 
-const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance', 'Shopping', 'Home', 'Learning', 'Social', 'Travel', 'Admin'] as const
-
-const RECURRENCE_OPTIONS = [
-  { value: 'none', label: 'No repeat' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-]
-
-interface EditTaskDialogProps {
-  task: Task | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
+interface TaskData {
+  content: string
+  priority: Priority
+  project?: string
+  category?: string
+  dueDate?: Date | string
+  timeEstimate?: number
+  recurrence?: Recurrence
 }
 
-export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps) {
-  const { updateTask, projects } = useTasks()
+interface EditTaskDialogProps {
+  task: TaskData | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSave?: (updates: Partial<TaskData>) => void | Promise<void>
+  availableProjects?: string[]
+}
+
+export function EditTaskDialog({ task, open, onOpenChange, onSave, availableProjects }: EditTaskDialogProps) {
+  const taskContext = useTasks()
+  const projectsList = availableProjects || (taskContext ? taskContext.projects.map(p => p.name) : [])
   const [content, setContent] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
   const [project, setProject] = useState<string>('')
@@ -59,7 +64,12 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       setPriority(task.priority)
       setProject(task.project || '')
       setCategory(task.category || '')
-      setDueDate(task.dueDate)
+      // Handle both Date and string formats
+      if (task.dueDate) {
+        setDueDate(typeof task.dueDate === 'string' ? new Date(task.dueDate) : task.dueDate)
+      } else {
+        setDueDate(undefined)
+      }
       setTimeEstimate(task.timeEstimate)
       setRecurrence(task.recurrence)
     }
@@ -68,7 +78,7 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   const handleSave = async () => {
     if (!task || !content.trim()) return
 
-    await updateTask(task.id, {
+    const updates = {
       content: content.trim(),
       priority,
       project: project || undefined,
@@ -76,7 +86,15 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       dueDate,
       timeEstimate,
       recurrence,
-    })
+    }
+
+    if (onSave) {
+      // Use custom save handler (for ApprovalScreen)
+      await onSave(updates)
+    } else if ('id' in task) {
+      // Fall back to updateTask for saved tasks
+      await taskContext.updateTask((task as Task).id, updates)
+    }
 
     onOpenChange(false)
   }
@@ -158,9 +176,9 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No Project</SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.name}>
-                      {p.name}
+                  {projectsList.map((projectName) => (
+                    <SelectItem key={projectName} value={projectName}>
+                      {projectName}
                     </SelectItem>
                   ))}
                 </SelectContent>
