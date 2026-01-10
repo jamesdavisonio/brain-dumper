@@ -85,24 +85,21 @@ export async function updateTask(
   updates: Partial<Task>
 ): Promise<void> {
   const docRef = doc(db, TASKS_COLLECTION, id)
-  const updateData: Record<string, unknown> = {
-    ...updates,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateData: Record<string, any> = {
     updatedAt: Timestamp.now(),
   }
 
-  if (updates.dueDate !== undefined) {
-    updateData.dueDate = toTimestamp(updates.dueDate)
-  }
-  if (updates.scheduledDate !== undefined) {
-    updateData.scheduledDate = toTimestamp(updates.scheduledDate)
-  }
-
-  // Remove undefined values
-  Object.keys(updateData).forEach((key) => {
-    if (updateData[key] === undefined) {
-      delete updateData[key]
+  // Copy over the updates, converting dates as needed
+  for (const [key, value] of Object.entries(updates)) {
+    if (key === 'dueDate' || key === 'scheduledDate') {
+      if (value !== undefined) {
+        updateData[key] = toTimestamp(value as Date)
+      }
+    } else if (value !== undefined) {
+      updateData[key] = value
     }
-  })
+  }
 
   await updateDoc(docRef, updateData)
 }

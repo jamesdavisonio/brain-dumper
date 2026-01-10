@@ -64,7 +64,7 @@ export interface TaskContextType {
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<void>
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>
   deleteTask: (id: string) => Promise<void>
-  addProject: (name: string, color: string) => Promise<void>
+  addProject: (name: string, color?: string) => Promise<void>
   deleteProject: (id: string) => Promise<void>
   bulkAddTasks: (tasks: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'>[]) => Promise<void>
 }
