@@ -261,8 +261,11 @@ export function ApprovalScreen() {
         </div>
 
         {/* Task Content */}
-        <div className="flex-1 p-4 overflow-y-auto flex flex-col">
-          <Card className="mb-auto">
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          <div className="px-4 pt-4 pb-2">
+            <h1 className="text-lg font-semibold">Review & Approve</h1>
+          </div>
+          <Card className="mx-4 mb-4">
             <CardContent className="pt-6 space-y-4">
               <div>
                 <h2 className="text-2xl font-semibold mb-2">{currentTask.content}</h2>

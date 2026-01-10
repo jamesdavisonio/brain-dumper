@@ -87,24 +87,19 @@ export function InputScreen() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Brain className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Brain Dumper</CardTitle>
-                <CardDescription>
-                  Pour out your thoughts. AI will organize them into tasks.
-                </CardDescription>
-              </div>
+            <div>
+              <CardTitle>Dump your thoughts</CardTitle>
+              <CardDescription>
+                AI will organise them into tasks
+              </CardDescription>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowHistory(true)}
             >
-              <History className="mr-2 h-4 w-4" />
-              History
+              <History className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">History</span>
             </Button>
           </div>
         </CardHeader>
@@ -134,9 +129,9 @@ export function InputScreen() {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {input.length} characters
-            </p>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Mic className="h-4 w-4" />
+            </div>
             <Button
               onClick={handleProcess}
               disabled={!input.trim() || isProcessing}
@@ -150,7 +145,7 @@ export function InputScreen() {
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Process with AI
+                  Process
                 </>
               )}
             </Button>
