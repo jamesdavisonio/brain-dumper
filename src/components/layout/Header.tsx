@@ -22,14 +22,23 @@ import { usePWAInstall } from '@/hooks/usePWAInstall'
 export function Header() {
   const { user, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const { canInstall, isIOSDevice, install } = usePWAInstall()
-  const [showIOSInstructions, setShowIOSInstructions] = useState(false)
+  const { canInstall, isIOSDevice, hasInstallPrompt, install } = usePWAInstall()
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false)
 
-  const handleInstallClick = () => {
+  const handleInstallClick = async () => {
     if (isIOSDevice) {
-      setShowIOSInstructions(true)
+      // iOS always needs manual instructions
+      setShowInstallInstructions(true)
+    } else if (hasInstallPrompt) {
+      // Has native install prompt (Chrome/Edge/etc)
+      const success = await install()
+      // If install failed or was dismissed, show manual instructions
+      if (!success) {
+        setShowInstallInstructions(true)
+      }
     } else {
-      install()
+      // No native prompt available, show manual instructions
+      setShowInstallInstructions(true)
     }
   }
 
@@ -104,39 +113,79 @@ export function Header() {
         </div>
       </div>
 
-      {/* iOS Install Instructions Dialog */}
-      <Dialog open={showIOSInstructions} onOpenChange={setShowIOSInstructions}>
-        <DialogContent>
+      {/* Install Instructions Dialog */}
+      <Dialog open={showInstallInstructions} onOpenChange={setShowInstallInstructions}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Install Brain Dump</DialogTitle>
             <DialogDescription>
-              To install this app on your iPhone or iPad:
+              {isIOSDevice
+                ? "To install this app on your iPhone or iPad:"
+                : "To install this app on your device:"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <ol className="list-decimal list-inside space-y-3 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5">1.</span>
-                <span className="flex-1">
-                  Tap the <Share className="inline h-4 w-4 mx-1" /> <strong>Share</strong> button in your browser (usually at the bottom of Safari)
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5">2.</span>
-                <span className="flex-1">
-                  Scroll down and tap <strong>"Add to Home Screen"</strong>
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5">3.</span>
-                <span className="flex-1">
-                  Tap <strong>"Add"</strong> in the top right corner
-                </span>
-              </li>
-            </ol>
-            <p className="text-xs text-muted-foreground mt-4">
-              The app will appear on your home screen and work like a native app!
-            </p>
+            {isIOSDevice ? (
+              // iOS Instructions
+              <>
+                <ol className="list-decimal list-inside space-y-3 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5">1.</span>
+                    <span className="flex-1">
+                      Tap the <Share className="inline h-4 w-4 mx-1" /> <strong>Share</strong> button in Safari (usually at the bottom)
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5">2.</span>
+                    <span className="flex-1">
+                      Scroll down and tap <strong>"Add to Home Screen"</strong>
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5">3.</span>
+                    <span className="flex-1">
+                      Tap <strong>"Add"</strong> in the top right corner
+                    </span>
+                  </li>
+                </ol>
+                <p className="text-xs text-muted-foreground mt-4">
+                  The app will appear on your home screen and work like a native app!
+                </p>
+              </>
+            ) : (
+              // Android/Desktop Instructions
+              <>
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <p className="font-medium mb-2">Chrome / Edge (Desktop & Android):</p>
+                    <ol className="list-decimal list-inside space-y-2 ml-2">
+                      <li>Look for the <Download className="inline h-4 w-4 mx-1" /> install icon in the address bar</li>
+                      <li>Click it and follow the prompts</li>
+                      <li>Or open the browser menu (⋮) and select "Install app"</li>
+                    </ol>
+                  </div>
+
+                  <div>
+                    <p className="font-medium mb-2">Firefox (Android):</p>
+                    <ol className="list-decimal list-inside space-y-2 ml-2">
+                      <li>Tap the menu (⋮)</li>
+                      <li>Select "Install"</li>
+                    </ol>
+                  </div>
+
+                  <div>
+                    <p className="font-medium mb-2">Samsung Internet:</p>
+                    <ol className="list-decimal list-inside space-y-2 ml-2">
+                      <li>Tap the menu (≡)</li>
+                      <li>Tap "Add page to" → "Home screen"</li>
+                    </ol>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4 pt-4 border-t">
+                  If you previously uninstalled the app, you may need to wait a moment or refresh the page for the install option to appear again.
+                </p>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
