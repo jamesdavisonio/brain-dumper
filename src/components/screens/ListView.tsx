@@ -56,10 +56,10 @@ export function ListView() {
   const handleEditProject = (projectId: string, projectName: string) => {
     const project = projects.find((p) => p.id === projectId)
     if (project) {
-      setEditingProject({ id: projectId, name: projectName, color: project.color, icon: project.icon })
+      setEditingProject({ id: projectId, name: projectName, color: project.color, icon: project.icon || 'Briefcase' })
       setNewProjectName(projectName)
       setNewProjectColor(project.color)
-      setNewProjectIcon(project.icon)
+      setNewProjectIcon(project.icon || 'Briefcase')
     }
   }
 
