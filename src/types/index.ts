@@ -32,6 +32,7 @@ export interface Project {
   id: string
   name: string
   color: string
+  icon?: string
   userId: string
   createdAt: Date
 }
@@ -79,8 +80,8 @@ export interface TaskContextType {
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<void>
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>
   deleteTask: (id: string) => Promise<void>
-  addProject: (name: string, color?: string) => Promise<void>
-  updateProject: (id: string, updates: { name?: string; color?: string }) => Promise<void>
+  addProject: (name: string, color?: string, icon?: string) => Promise<void>
+  updateProject: (id: string, updates: { name?: string; color?: string; icon?: string }) => Promise<void>
   deleteProject: (id: string) => Promise<void>
   bulkAddTasks: (tasks: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'>[]) => Promise<void>
 }

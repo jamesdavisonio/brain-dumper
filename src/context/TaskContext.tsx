@@ -12,7 +12,7 @@ import {
   deleteProject as deleteProjectService,
 } from '@/services/firestore'
 import type { Task, Project, TaskContextType } from '@/types'
-import { getProjectColor } from '@/lib/utils'
+import { getProjectColor, getProjectIcon } from '@/lib/utils'
 
 const TaskContext = createContext<TaskContextType | null>(null)
 
@@ -79,18 +79,19 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const addProject = async (name: string, color?: string) => {
+  const addProject = async (name: string, color?: string, icon?: string) => {
     if (!user) return
     try {
       const projectColor = color || getProjectColor(projects.length)
-      await createProject({ name, color: projectColor, userId: user.uid })
+      const projectIcon = icon || getProjectIcon(projects.length)
+      await createProject({ name, color: projectColor, icon: projectIcon, userId: user.uid })
     } catch (err) {
       setError('Failed to create project')
       console.error(err)
     }
   }
 
-  const updateProject = async (id: string, updates: { name?: string; color?: string }) => {
+  const updateProject = async (id: string, updates: { name?: string; color?: string; icon?: string }) => {
     try {
       await updateProjectService(id, updates)
     } catch (err) {

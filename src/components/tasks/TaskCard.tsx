@@ -35,6 +35,7 @@ import {
 import { cn, formatDate, formatTimeEstimate } from '@/lib/utils'
 import type { Task, Priority } from '@/types'
 import { EditTaskDialog } from './EditTaskDialog'
+import { ProjectIcon } from '@/components/ui/project-icon'
 
 interface TaskCardProps {
   task: Task
@@ -114,12 +115,13 @@ export function TaskCard({ task, showProject = true, inTimeline = false }: TaskC
             {showProject && task.project && (
               <Badge
                 variant="outline"
-                className="text-xs"
+                className="text-xs flex items-center gap-1"
                 style={{
                   borderColor: project?.color,
                   color: project?.color,
                 }}
               >
+                {project?.icon && <ProjectIcon icon={project.icon} color={project.color} className="h-3 w-3" />}
                 {task.project}
               </Badge>
             )}
