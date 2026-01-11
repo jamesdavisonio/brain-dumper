@@ -57,6 +57,21 @@ ${projectsSection}
 CATEGORIES for auto-categorization: ${CATEGORIES.join(', ')}
 Assign the most appropriate category to each task based on its content.
 
+IMPORTANT - Distinguish between MULTI-DAY tasks vs RECURRING tasks:
+
+MULTI-DAY tasks (create SEPARATE tasks for each day):
+- "on Monday, Tuesday, and Wednesday" → Create 3 separate tasks, one for each day
+- "for Tuesday, Wednesday and Thursday" → Create 3 separate tasks
+- "task for Mon and Wed" → Create 2 separate tasks
+- When multiple specific days are listed, create individual tasks
+
+RECURRING tasks (single task with recurrence pattern):
+- "every Monday" → Single task with weekly recurrence on Monday
+- "daily" or "every day" → Single task with daily recurrence
+- "weekly" or "every week" → Single task with weekly recurrence
+- "every Monday and Wednesday" → Single task with weekly recurrence on those days
+- When "every" or "weekly/daily/monthly" is used, create ONE recurring task
+
 RECURRENCE patterns to detect:
 - "every day", "daily" → { type: "daily", interval: 1 }
 - "every week", "weekly" → { type: "weekly", interval: 1 }
