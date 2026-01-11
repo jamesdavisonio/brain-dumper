@@ -1,8 +1,8 @@
-const CACHE_NAME = 'brain-dump-v1'
+const CACHE_NAME = 'brain-dump-v2'
 const urlsToCache = [
   '/',
   '/index.html',
-  '/brain.svg',
+  '/icon-transparent.svg',
   '/manifest.json'
 ]
 

@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const publicDir = join(__dirname, '..', 'public')
 
 // Read the SVG
-const svgPath = join(publicDir, 'brain.svg')
+const svgPath = join(publicDir, 'icon-transparent.svg')
 const svgContent = readFileSync(svgPath, 'utf8')
 
 // Generate icons
@@ -32,7 +32,7 @@ async function generateIcons() {
         width: size,
         height: size,
         channels: 4,
-        background: { r: 99, g: 102, b: 241, alpha: 1 } // #6366f1
+        background: { r: 78, g: 205, b: 196, alpha: 1 } // #4ECDC4
       }
     })
       .composite([
