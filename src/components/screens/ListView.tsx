@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useTasks } from '@/context/TaskContext'
-import { SwipeableTaskCard } from '@/components/tasks/SwipeableTaskCard'
+import { SelectableTaskCard } from '@/components/tasks/SelectableTaskCard'
+import { BulkActionBar } from '@/components/tasks/BulkActionBar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,17 +21,19 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Search, Filter, FolderOpen, ChevronDown, ChevronRight, Edit } from 'lucide-react'
+import { Search, Filter, FolderOpen, ChevronDown, ChevronRight, Edit, CheckSquare } from 'lucide-react'
 import type { Priority } from '@/types'
 
 export function ListView() {
-  const { tasks, projects, loading, updateProject } = useTasks()
+  const { tasks, projects, loading, updateProject, updateTask, deleteTask } = useTasks()
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all')
   const [projectFilter, setProjectFilter] = useState<string>('all')
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set())
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null)
   const [newProjectName, setNewProjectName] = useState('')
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set())
 
   const toggleProjectCollapse = (projectName: string) => {
     setCollapsedProjects((prev) => {
@@ -55,6 +58,71 @@ export function ListView() {
     }
     setEditingProject(null)
     setNewProjectName('')
+  }
+
+  const handleSelectionChange = (taskId: string, selected: boolean) => {
+    setSelectedTasks((prev) => {
+      const newSet = new Set(prev)
+      if (selected) {
+        newSet.add(taskId)
+      } else {
+        newSet.delete(taskId)
+      }
+      return newSet
+    })
+  }
+
+  const handleBulkComplete = async () => {
+    for (const taskId of selectedTasks) {
+      await updateTask(taskId, { completed: true })
+    }
+    setSelectedTasks(new Set())
+    setSelectionMode(false)
+  }
+
+  const handleBulkUncomplete = async () => {
+    for (const taskId of selectedTasks) {
+      await updateTask(taskId, { completed: false })
+    }
+    setSelectedTasks(new Set())
+    setSelectionMode(false)
+  }
+
+  const handleBulkArchive = async () => {
+    for (const taskId of selectedTasks) {
+      await updateTask(taskId, { archived: true })
+    }
+    setSelectedTasks(new Set())
+    setSelectionMode(false)
+  }
+
+  const handleBulkDelete = async () => {
+    for (const taskId of selectedTasks) {
+      await deleteTask(taskId)
+    }
+    setSelectedTasks(new Set())
+    setSelectionMode(false)
+  }
+
+  const handleBulkChangePriority = async (priority: Priority) => {
+    for (const taskId of selectedTasks) {
+      await updateTask(taskId, { priority })
+    }
+    setSelectedTasks(new Set())
+    setSelectionMode(false)
+  }
+
+  const handleBulkChangeProject = async (project: string | null) => {
+    for (const taskId of selectedTasks) {
+      await updateTask(taskId, { project: project || undefined })
+    }
+    setSelectedTasks(new Set())
+    setSelectionMode(false)
+  }
+
+  const handleCancelSelection = () => {
+    setSelectedTasks(new Set())
+    setSelectionMode(false)
   }
 
   const activeTasks = useMemo(() => {
@@ -159,6 +227,17 @@ export function ListView() {
               ))}
             </SelectContent>
           </Select>
+
+          <Button
+            variant={selectionMode ? 'default' : 'outline'}
+            size="icon"
+            onClick={() => {
+              setSelectionMode(!selectionMode)
+              setSelectedTasks(new Set())
+            }}
+          >
+            <CheckSquare className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -182,7 +261,13 @@ export function ListView() {
             </div>
           ) : (
             activeTasks.map((task) => (
-              <SwipeableTaskCard key={task.id} task={task} />
+              <SelectableTaskCard
+                key={task.id}
+                task={task}
+                selectionMode={selectionMode}
+                isSelected={selectedTasks.has(task.id)}
+                onSelectionChange={handleSelectionChange}
+              />
             ))
           )}
         </TabsContent>
@@ -234,7 +319,14 @@ export function ListView() {
                 {!isCollapsed && (
                   <div className="space-y-3">
                     {projectTasks.map((task) => (
-                      <SwipeableTaskCard key={task.id} task={task} showProject={false} />
+                      <SelectableTaskCard
+                        key={task.id}
+                        task={task}
+                        showProject={false}
+                        selectionMode={selectionMode}
+                        isSelected={selectedTasks.has(task.id)}
+                        onSelectionChange={handleSelectionChange}
+                      />
                     ))}
                   </div>
                 )}
@@ -250,7 +342,13 @@ export function ListView() {
             </div>
           ) : (
             completedTasks.map((task) => (
-              <SwipeableTaskCard key={task.id} task={task} />
+              <SelectableTaskCard
+                key={task.id}
+                task={task}
+                selectionMode={selectionMode}
+                isSelected={selectedTasks.has(task.id)}
+                onSelectionChange={handleSelectionChange}
+              />
             ))
           )}
         </TabsContent>
@@ -283,6 +381,19 @@ export function ListView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedTasks.size}
+        onComplete={handleBulkComplete}
+        onUncomplete={handleBulkUncomplete}
+        onArchive={handleBulkArchive}
+        onDelete={handleBulkDelete}
+        onChangePriority={handleBulkChangePriority}
+        onChangeProject={handleBulkChangeProject}
+        onCancel={handleCancelSelection}
+        projects={projects.map((p) => p.name)}
+      />
     </div>
   )
 }
