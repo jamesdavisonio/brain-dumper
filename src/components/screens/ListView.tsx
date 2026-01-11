@@ -129,7 +129,7 @@ export function ListView() {
   }
 
   const activeTasks = useMemo(() => {
-    let filtered = tasks
+    const filtered = tasks
       .filter((t) => !t.archived && !t.completed)
       .filter((t) => {
         if (search) {
