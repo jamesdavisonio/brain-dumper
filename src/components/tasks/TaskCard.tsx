@@ -41,9 +41,10 @@ interface TaskCardProps {
   task: Task
   showProject?: boolean
   inTimeline?: boolean
+  projectBorder?: boolean
 }
 
-export function TaskCard({ task, showProject = true, inTimeline = false }: TaskCardProps) {
+export function TaskCard({ task, showProject = true, inTimeline = false, projectBorder = false }: TaskCardProps) {
   const { updateTask, deleteTask, projects } = useTasks()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -77,8 +78,10 @@ export function TaskCard({ task, showProject = true, inTimeline = false }: TaskC
     <Card
       className={cn(
         'group relative p-4 transition-all hover:shadow-md',
-        task.completed && 'opacity-60'
+        task.completed && 'opacity-60',
+        projectBorder && project && 'border-l-4'
       )}
+      style={projectBorder && project ? { borderLeftColor: project.color } : undefined}
     >
       <div className="flex items-start gap-3">
         <button

@@ -7,6 +7,7 @@ interface SelectableTaskCardProps {
   task: Task
   showProject?: boolean
   inTimeline?: boolean
+  projectBorder?: boolean
   selectionMode: boolean
   isSelected: boolean
   onSelectionChange: (taskId: string, selected: boolean) => void
@@ -16,12 +17,13 @@ export function SelectableTaskCard({
   task,
   showProject = true,
   inTimeline = false,
+  projectBorder = false,
   selectionMode,
   isSelected,
   onSelectionChange,
 }: SelectableTaskCardProps) {
   if (!selectionMode) {
-    return <SwipeableTaskCard task={task} showProject={showProject} inTimeline={inTimeline} />
+    return <SwipeableTaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} />
   }
 
   return (
@@ -37,7 +39,7 @@ export function SelectableTaskCard({
         className="mt-5"
       />
       <div className="flex-1">
-        <SwipeableTaskCard task={task} showProject={showProject} inTimeline={inTimeline} />
+        <SwipeableTaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} />
       </div>
     </div>
   )

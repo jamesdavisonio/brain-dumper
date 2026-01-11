@@ -10,9 +10,10 @@ interface SwipeableTaskCardProps {
   task: Task
   showProject?: boolean
   inTimeline?: boolean
+  projectBorder?: boolean
 }
 
-export function SwipeableTaskCard({ task, showProject = true, inTimeline = false }: SwipeableTaskCardProps) {
+export function SwipeableTaskCard({ task, showProject = true, inTimeline = false, projectBorder = false }: SwipeableTaskCardProps) {
   const { updateTask } = useTasks()
   const [swipeOffset, setSwipeOffset] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -67,7 +68,7 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
   })
 
   if (!isMobile) {
-    return <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} />
+    return <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} />
   }
 
   return (
@@ -108,7 +109,7 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
           transform: `translateX(${swipeOffset}px)`,
         }}
       >
-        <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} />
+        <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} />
       </div>
     </div>
   )

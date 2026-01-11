@@ -25,6 +25,8 @@ import { Search, Filter, FolderOpen, ChevronDown, ChevronRight, Edit, CheckSquar
 import * as LucideIcons from 'lucide-react'
 import type { Priority } from '@/types'
 import { CATEGORIES, PROJECT_COLORS, PROJECT_ICONS } from '@/lib/constants'
+import { ProjectIcon } from '@/components/ui/project-icon'
+import { Badge } from '@/components/ui/badge'
 
 export function ListView() {
   const { tasks, projects, loading, updateProject, updateTask, deleteTask } = useTasks()
@@ -357,34 +359,45 @@ export function ListView() {
             const isCollapsed = collapsedProjects.has(projectName)
 
             return (
-              <div key={projectName}>
-                <div className="flex items-center justify-between mb-3">
+              <div key={projectName} className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
                   <Button
                     variant="ghost"
-                    className="flex-1 justify-start hover:bg-transparent p-0 h-auto"
+                    className="flex-1 justify-start hover:bg-accent p-2 h-auto rounded-lg"
                     onClick={() => toggleProjectCollapse(projectName)}
                   >
-                    <h3
-                      className="font-medium flex items-center gap-2"
-                      style={{ color: project?.color }}
-                    >
+                    <div className="flex items-center gap-3 w-full">
                       {isCollapsed ? (
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
                       ) : (
-                        <ChevronDown className="h-4 w-4" />
+                        <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0" />
                       )}
-                      <div
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: project?.color || '#888' }}
-                      />
-                      {projectName} ({projectTasks.length})
-                    </h3>
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-2 py-2 px-4 text-base font-semibold"
+                        style={{
+                          borderColor: project?.color || '#888',
+                          backgroundColor: project?.color ? `${project.color}15` : '#88888815',
+                          color: project?.color || '#888',
+                        }}
+                      >
+                        {project?.icon && (
+                          <ProjectIcon
+                            icon={project.icon}
+                            color={project.color}
+                            className="h-5 w-5"
+                          />
+                        )}
+                        <span>{projectName}</span>
+                        <span className="ml-1 opacity-75">({projectTasks.length})</span>
+                      </Badge>
+                    </div>
                   </Button>
                   {project && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-9 w-9 shrink-0"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleEditProject(project.id, projectName)
@@ -395,12 +408,13 @@ export function ListView() {
                   )}
                 </div>
                 {!isCollapsed && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 pl-2">
                     {projectTasks.map((task) => (
                       <SelectableTaskCard
                         key={task.id}
                         task={task}
                         showProject={false}
+                        projectBorder={true}
                         selectionMode={selectionMode}
                         isSelected={selectedTasks.has(task.id)}
                         onSelectionChange={handleSelectionChange}
