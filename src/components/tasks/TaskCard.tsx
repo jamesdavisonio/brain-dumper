@@ -132,6 +132,7 @@ export function TaskCard({ task, showProject = true, inTimeline = false }: TaskC
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <CalendarIcon className="h-3 w-3" />
                 {formatDate(task.scheduledDate)}
+                {task.scheduledTime && ` at ${task.scheduledTime}`}
               </span>
             )}
 
