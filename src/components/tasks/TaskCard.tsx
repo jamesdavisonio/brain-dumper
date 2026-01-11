@@ -69,8 +69,8 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
   const displayDate = inTimeline ? task.scheduledDate : (task.scheduledDate || task.dueDate)
   const displayTime = inTimeline ? task.scheduledTime : (task.scheduledTime || task.dueTime)
 
-  // Get abbreviated priority
-  const priorityShort = task.priority === 'high' ? 'H' : task.priority === 'medium' ? 'M' : 'L'
+  // Get priority color for dot
+  const priorityColor = task.priority === 'high' ? 'bg-red-500' : task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
 
   return (
     <Card
@@ -133,9 +133,7 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
               </Badge>
             )}
 
-            <Badge variant={task.priority} className="text-xs px-1.5 py-0 h-5">
-              {priorityShort}
-            </Badge>
+            <div className={cn('h-2 w-2 rounded-full', priorityColor)} title={`${task.priority} priority`} />
 
             {displayDate && (
               <span className="flex items-center gap-0.5 text-muted-foreground">
