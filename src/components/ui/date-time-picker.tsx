@@ -1,7 +1,7 @@
 import * as React from "react"
 import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatTimeOfDay } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { TimeOfDaySelector, type TimeOfDay } from "@/components/ui/time-of-day-selector"
+import { Badge } from "@/components/ui/badge"
 
 export interface DateTimeValue {
   date: Date | undefined
@@ -68,14 +69,14 @@ export function DateTimePicker({
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {value?.date ? (
-            <>
+            <span className="flex items-center gap-1">
               {format(value.date, "MMM d, yyyy")}
-              {value.timeOfDay && (
-                <span className="ml-1 text-muted-foreground">
-                  • {value.timeOfDay}
-                </span>
+              {formatTimeOfDay(value.timeOfDay) && (
+                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4 ml-1">
+                  {formatTimeOfDay(value.timeOfDay)}
+                </Badge>
               )}
-            </>
+            </span>
           ) : (
             placeholder
           )}

@@ -3,8 +3,6 @@ import { useTasks } from '@/context/TaskContext'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +28,6 @@ import {
   Trash2,
   Archive,
   Flag,
-  Pencil,
 } from 'lucide-react'
 import { cn, formatDate, formatTimeEstimate, formatTimeOfDay } from '@/lib/utils'
 import type { Task, Priority } from '@/types'
@@ -46,7 +43,6 @@ interface TaskCardProps {
 
 export function TaskCard({ task, showProject = true, inTimeline = false, projectBorder = false }: TaskCardProps) {
   const { updateTask, deleteTask, projects } = useTasks()
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
@@ -54,11 +50,6 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
 
   const handleToggleComplete = () => {
     updateTask(task.id, { completed: !task.completed })
-  }
-
-  const handleSchedule = (date: Date | undefined) => {
-    updateTask(task.id, { scheduledDate: date })
-    setIsCalendarOpen(false)
   }
 
   const handlePriorityChange = (priority: Priority) => {
@@ -74,39 +65,51 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
     setIsDeleteDialogOpen(false)
   }
 
+  // Determine which date to show (prefer scheduledDate for timeline, dueDate otherwise)
+  const displayDate = inTimeline ? task.scheduledDate : (task.scheduledDate || task.dueDate)
+  const displayTime = inTimeline ? task.scheduledTime : (task.scheduledTime || task.dueTime)
+
+  // Get priority color for dot
+  const priorityColor = task.priority === 'high' ? 'bg-red-500' : task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+
   return (
     <Card
       className={cn(
-        'group relative p-4 transition-all hover:shadow-md',
+        'group relative p-3 transition-all hover:shadow-md cursor-pointer',
         task.completed && 'opacity-60',
         projectBorder && project && 'border-l-4'
       )}
       style={projectBorder && project ? { borderLeftColor: project.color } : undefined}
+      onClick={() => setIsEditDialogOpen(true)}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2">
         <button
-          onClick={handleToggleComplete}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleToggleComplete()
+          }}
           className={cn(
-            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+            'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
             task.completed
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-muted-foreground/50 hover:border-primary'
           )}
         >
-          {task.completed && <Check className="h-3 w-3" />}
+          {task.completed && <Check className="h-2.5 w-2.5" />}
         </button>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-1">
+          {/* Title row with time estimate */}
           <div className="flex items-start justify-between gap-2">
             <p
               className={cn(
-                'text-sm font-medium flex-1',
+                'text-sm font-medium flex-1 line-clamp-2',
                 task.completed && 'line-through text-muted-foreground'
               )}
             >
               {task.content}
             </p>
-            {inTimeline && task.timeEstimate && (
+            {task.timeEstimate && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                 <Clock className="h-3 w-3" />
                 {formatTimeEstimate(task.timeEstimate)}
@@ -114,11 +117,12 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
             )}
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          {/* Metadata row - compact single line */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
             {showProject && task.project && (
               <Badge
                 variant="outline"
-                className="text-xs flex items-center gap-1"
+                className="text-xs flex items-center gap-1 px-1.5 py-0 h-5"
                 style={{
                   borderColor: project?.color,
                   color: project?.color,
@@ -129,99 +133,56 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
               </Badge>
             )}
 
-            <Badge variant={task.priority} className="text-xs capitalize">
-              {task.priority}
-            </Badge>
+            <div className={cn('h-2 w-2 rounded-full', priorityColor)} title={`${task.priority} priority`} />
 
-            {task.dueDate && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            {displayDate && (
+              <span className="flex items-center gap-0.5 text-muted-foreground">
                 <CalendarIcon className="h-3 w-3" />
-                {formatDate(task.dueDate)}
-                {formatTimeOfDay(task.dueTime) && (
-                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4 ml-1">
-                    {formatTimeOfDay(task.dueTime)}
+                <span>{formatDate(displayDate)}</span>
+                {formatTimeOfDay(displayTime) && (
+                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4 ml-0.5">
+                    {formatTimeOfDay(displayTime)}
                   </Badge>
                 )}
-              </span>
-            )}
-
-            {!inTimeline && task.scheduledDate && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <CalendarIcon className="h-3 w-3" />
-                {formatDate(task.scheduledDate)}
-                {formatTimeOfDay(task.scheduledTime) && (
-                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4 ml-1">
-                    {formatTimeOfDay(task.scheduledTime)}
-                  </Badge>
-                )}
-              </span>
-            )}
-
-            {!inTimeline && task.timeEstimate && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                {formatTimeEstimate(task.timeEstimate)}
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <CalendarIcon className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={task.scheduledDate}
-                onSelect={handleSchedule}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit Task
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handlePriorityChange('high')}>
-                <Flag className="mr-2 h-4 w-4 text-red-500" />
-                High Priority
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handlePriorityChange('medium')}>
-                <Flag className="mr-2 h-4 w-4 text-yellow-500" />
-                Medium Priority
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handlePriorityChange('low')}>
-                <Flag className="mr-2 h-4 w-4 text-green-500" />
-                Low Priority
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleArchive}>
-                <Archive className="mr-2 h-4 w-4" />
-                Archive
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setIsDeleteDialogOpen(true)}
-                className="text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {/* Dropdown menu for additional actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePriorityChange('high') }}>
+              <Flag className="mr-2 h-4 w-4 text-red-500" />
+              High Priority
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePriorityChange('medium') }}>
+              <Flag className="mr-2 h-4 w-4 text-yellow-500" />
+              Medium Priority
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePriorityChange('low') }}>
+              <Flag className="mr-2 h-4 w-4 text-green-500" />
+              Low Priority
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleArchive() }}>
+              <Archive className="mr-2 h-4 w-4" />
+              Archive
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); setIsDeleteDialogOpen(true) }}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <EditTaskDialog
         task={task}
