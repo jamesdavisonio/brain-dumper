@@ -24,7 +24,7 @@ import {
 import { DateTimePicker, type DateTimeValue } from '@/components/ui/date-time-picker'
 import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag, Edit } from 'lucide-react'
 import type { ParsedTask, Priority, Recurrence } from '@/types'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatTimeOfDay } from '@/lib/utils'
 import { CATEGORIES, RECURRENCE_OPTIONS } from '@/lib/constants'
 import { useToast } from '@/hooks/useToast'
 import { EditTaskDialog } from '@/components/tasks/EditTaskDialog'
@@ -281,9 +281,13 @@ export function ApprovalScreen() {
                     <p className="text-sm text-muted-foreground mb-2">Due Date</p>
                     <div className="flex items-center gap-2">
                       <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
+                      <span className="text-sm flex items-center gap-1">
                         {formatDate(new Date(currentTask.dueDate))}
-                        {currentTask.scheduledTime && ` at ${currentTask.scheduledTime}`}
+                        {formatTimeOfDay(currentTask.dueTime) && (
+                          <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">
+                            {formatTimeOfDay(currentTask.dueTime)}
+                          </Badge>
+                        )}
                       </span>
                     </div>
                   </div>

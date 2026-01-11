@@ -32,7 +32,7 @@ import {
   Flag,
   Pencil,
 } from 'lucide-react'
-import { cn, formatDate, formatTimeEstimate } from '@/lib/utils'
+import { cn, formatDate, formatTimeEstimate, formatTimeOfDay } from '@/lib/utils'
 import type { Task, Priority } from '@/types'
 import { EditTaskDialog } from './EditTaskDialog'
 import { ProjectIcon } from '@/components/ui/project-icon'
@@ -133,11 +133,27 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
               {task.priority}
             </Badge>
 
+            {task.dueDate && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <CalendarIcon className="h-3 w-3" />
+                {formatDate(task.dueDate)}
+                {formatTimeOfDay(task.dueTime) && (
+                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4 ml-1">
+                    {formatTimeOfDay(task.dueTime)}
+                  </Badge>
+                )}
+              </span>
+            )}
+
             {!inTimeline && task.scheduledDate && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <CalendarIcon className="h-3 w-3" />
                 {formatDate(task.scheduledDate)}
-                {task.scheduledTime && ` at ${task.scheduledTime}`}
+                {formatTimeOfDay(task.scheduledTime) && (
+                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4 ml-1">
+                    {formatTimeOfDay(task.scheduledTime)}
+                  </Badge>
+                )}
               </span>
             )}
 

@@ -88,3 +88,13 @@ export function detectOS(): OSType {
   }
   return 'unknown'
 }
+
+export function formatTimeOfDay(timeOfDay?: string | null): string | null {
+  if (!timeOfDay) return null
+
+  const normalized = timeOfDay.toLowerCase()
+  if (normalized === 'morning') return 'M'
+  if (normalized === 'afternoon') return 'A'
+  if (normalized === 'evening') return 'E'
+  return null
+}

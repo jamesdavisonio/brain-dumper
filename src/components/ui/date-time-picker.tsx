@@ -50,6 +50,10 @@ export function DateTimePicker({
     onChange({ date: new Date(), timeOfDay: value.timeOfDay })
   }
 
+  const handleDone = () => {
+    setOpen(false)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -96,17 +100,24 @@ export function DateTimePicker({
             variant="ghost"
             size="sm"
             onClick={handleClear}
-            className="flex-1"
           >
             Clear
           </Button>
+          <div className="flex-1" />
           <Button
             variant="ghost"
             size="sm"
             onClick={handleToday}
-            className="flex-1"
           >
             Today
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleDone}
+            disabled={!value?.date}
+          >
+            Done
           </Button>
         </div>
       </PopoverContent>
