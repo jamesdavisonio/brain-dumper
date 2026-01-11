@@ -24,33 +24,37 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import { CalendarIcon, Clock, Tag, Repeat } from 'lucide-react'
+import { CalendarIcon, Clock, Tag, Repeat, Plus, Minus } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
+import { CATEGORIES, RECURRENCE_OPTIONS } from '@/lib/constants'
 import type { Task, Priority, Recurrence } from '@/types'
 
-const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance', 'Shopping', 'Home', 'Learning', 'Social', 'Travel', 'Admin'] as const
-
-const RECURRENCE_OPTIONS = [
-  { value: 'none', label: 'No repeat' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-]
-
-interface EditTaskDialogProps {
-  task: Task | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
+interface TaskData {
+  content: string
+  priority: Priority
+  project?: string
+  category?: string
+  dueDate?: Date | string
+  timeEstimate?: number
+  recurrence?: Recurrence
 }
 
-export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps) {
-  const { updateTask, projects } = useTasks()
+interface EditTaskDialogProps {
+  task: TaskData | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSave?: (updates: Partial<TaskData>) => void | Promise<void>
+  availableProjects?: string[]
+}
+
+export function EditTaskDialog({ task, open, onOpenChange, onSave, availableProjects }: EditTaskDialogProps) {
+  const taskContext = useTasks()
+  const projectsList = availableProjects || (taskContext ? taskContext.projects.map(p => p.name) : [])
   const [content, setContent] = useState('')
   const [priority, setPriority] = useState<Priority>('medium')
   const [project, setProject] = useState<string>('')
   const [category, setCategory] = useState<string>('')
   const [dueDate, setDueDate] = useState<Date | undefined>()
-  const [scheduledDate, setScheduledDate] = useState<Date | undefined>()
   const [timeEstimate, setTimeEstimate] = useState<number | undefined>()
   const [recurrence, setRecurrence] = useState<Recurrence | undefined>()
 
@@ -60,8 +64,12 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
       setPriority(task.priority)
       setProject(task.project || '')
       setCategory(task.category || '')
-      setDueDate(task.dueDate)
-      setScheduledDate(task.scheduledDate)
+      // Handle both Date and string formats
+      if (task.dueDate) {
+        setDueDate(typeof task.dueDate === 'string' ? new Date(task.dueDate) : task.dueDate)
+      } else {
+        setDueDate(undefined)
+      }
       setTimeEstimate(task.timeEstimate)
       setRecurrence(task.recurrence)
     }
@@ -70,18 +78,33 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
   const handleSave = async () => {
     if (!task || !content.trim()) return
 
-    await updateTask(task.id, {
+    const updates = {
       content: content.trim(),
       priority,
       project: project || undefined,
       category: category || undefined,
       dueDate,
-      scheduledDate,
       timeEstimate,
       recurrence,
-    })
+    }
+
+    if (onSave) {
+      // Use custom save handler (for ApprovalScreen)
+      await onSave(updates)
+    } else if ('id' in task) {
+      // Fall back to updateTask for saved tasks
+      await taskContext.updateTask((task as Task).id, updates)
+    }
 
     onOpenChange(false)
+  }
+
+  const adjustTimeEstimate = (delta: number) => {
+    setTimeEstimate((prev) => {
+      const current = prev || 0
+      const newValue = Math.max(0, current + delta)
+      return newValue === 0 ? undefined : newValue
+    })
   }
 
   const handleRecurrenceChange = (value: string) => {
@@ -153,9 +176,9 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No Project</SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.name}>
-                      {p.name}
+                  {projectsList.map((projectName) => (
+                    <SelectItem key={projectName} value={projectName}>
+                      {projectName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -163,25 +186,25 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={category || 'none'} onValueChange={(v) => setCategory(v === 'none' ? '' : v)}>
-              <SelectTrigger id="category">
-                <Tag className="mr-2 h-3 w-3" />
-                <SelectValue placeholder="No category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Category</SelectItem>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={category || 'none'} onValueChange={(v) => setCategory(v === 'none' ? '' : v)}>
+                <SelectTrigger id="category">
+                  <Tag className="mr-2 h-3 w-3" />
+                  <SelectValue placeholder="No category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Category</SelectItem>
+                  {CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label>Due Date</Label>
               <Popover>
@@ -219,44 +242,6 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
                 </PopoverContent>
               </Popover>
             </div>
-
-            <div className="space-y-2">
-              <Label>Scheduled</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !scheduledDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {scheduledDate ? formatDate(scheduledDate) : 'Pick a date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={scheduledDate}
-                    onSelect={setScheduledDate}
-                    initialFocus
-                  />
-                  {scheduledDate && (
-                    <div className="p-2 border-t">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => setScheduledDate(undefined)}
-                      >
-                        Clear date
-                      </Button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -282,24 +267,46 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
 
             <div className="space-y-2">
               <Label htmlFor="timeEstimate">Time Estimate (mins)</Label>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="timeEstimate"
-                  type="number"
-                  min="0"
-                  placeholder="e.g., 30"
-                  value={timeEstimate || ''}
-                  onChange={(e) =>
-                    setTimeEstimate(e.target.value ? parseInt(e.target.value, 10) : undefined)
-                  }
-                />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => adjustTimeEstimate(-15)}
+                  disabled={!timeEstimate || timeEstimate < 15}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1 flex-1">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="timeEstimate"
+                    type="number"
+                    min="0"
+                    step="15"
+                    placeholder="e.g., 30"
+                    value={timeEstimate || ''}
+                    onChange={(e) =>
+                      setTimeEstimate(e.target.value ? parseInt(e.target.value, 10) : undefined)
+                    }
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => adjustTimeEstimate(15)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-3">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

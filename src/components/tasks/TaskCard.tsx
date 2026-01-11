@@ -29,9 +29,10 @@ import { EditTaskDialog } from './EditTaskDialog'
 interface TaskCardProps {
   task: Task
   showProject?: boolean
+  inTimeline?: boolean
 }
 
-export function TaskCard({ task, showProject = true }: TaskCardProps) {
+export function TaskCard({ task, showProject = true, inTimeline = false }: TaskCardProps) {
   const { updateTask, deleteTask, projects } = useTasks()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -80,14 +81,22 @@ export function TaskCard({ task, showProject = true }: TaskCardProps) {
         </button>
 
         <div className="flex-1 min-w-0">
-          <p
-            className={cn(
-              'text-sm font-medium',
-              task.completed && 'line-through text-muted-foreground'
+          <div className="flex items-start justify-between gap-2">
+            <p
+              className={cn(
+                'text-sm font-medium flex-1',
+                task.completed && 'line-through text-muted-foreground'
+              )}
+            >
+              {task.content}
+            </p>
+            {inTimeline && task.timeEstimate && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                <Clock className="h-3 w-3" />
+                {formatTimeEstimate(task.timeEstimate)}
+              </span>
             )}
-          >
-            {task.content}
-          </p>
+          </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {showProject && task.project && (
@@ -107,14 +116,14 @@ export function TaskCard({ task, showProject = true }: TaskCardProps) {
               {task.priority}
             </Badge>
 
-            {task.scheduledDate && (
+            {!inTimeline && task.scheduledDate && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <CalendarIcon className="h-3 w-3" />
                 {formatDate(task.scheduledDate)}
               </span>
             )}
 
-            {task.timeEstimate && (
+            {!inTimeline && task.timeEstimate && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 {formatTimeEstimate(task.timeEstimate)}

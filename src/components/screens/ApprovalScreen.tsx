@@ -30,16 +30,9 @@ import { Calendar } from '@/components/ui/calendar'
 import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag, Edit } from 'lucide-react'
 import type { ParsedTask, Priority, Recurrence } from '@/types'
 import { cn, formatDate } from '@/lib/utils'
+import { CATEGORIES, RECURRENCE_OPTIONS } from '@/lib/constants'
 import { useToast } from '@/hooks/useToast'
-
-const CATEGORIES = ['Work', 'Personal', 'Health', 'Finance', 'Shopping', 'Home', 'Learning', 'Social', 'Travel', 'Admin'] as const
-
-const RECURRENCE_OPTIONS = [
-  { value: 'none', label: 'No repeat' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-]
+import { EditTaskDialog } from '@/components/tasks/EditTaskDialog'
 
 function formatRecurrence(recurrence?: Recurrence): string {
   if (!recurrence) return 'No repeat'
@@ -169,19 +162,8 @@ export function ApprovalScreen() {
 
       await bulkAddTasks(tasksToAdd)
 
-      // Save to brain dump history
-      const originalInput = sessionStorage.getItem('originalInput')
-      if (originalInput) {
-        const history = JSON.parse(localStorage.getItem('brainDumpHistory') || '[]')
-        history.unshift({
-          id: Date.now().toString(),
-          content: originalInput,
-          createdAt: new Date().toISOString(),
-          taskCount: tasks.length,
-        })
-        // Keep only last 50 entries
-        localStorage.setItem('brainDumpHistory', JSON.stringify(history.slice(0, 50)))
-      }
+      // History is now saved immediately after processing in InputScreen
+      // No need to save again here
 
       // Clear session storage
       sessionStorage.removeItem('parsedTasks')
@@ -262,7 +244,7 @@ export function ApprovalScreen() {
 
         {/* Task Content */}
         <div className="flex-1 overflow-y-auto flex flex-col">
-          <div className="px-4 pt-4 pb-2">
+          <div className="px-4 pt-6 pb-4">
             <h1 className="text-lg font-semibold">Review & Approve</h1>
           </div>
           <Card className="mx-4 mb-4">
@@ -374,115 +356,22 @@ export function ApprovalScreen() {
         </div>
 
         {/* Edit Dialog for Mobile */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Task</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Task Description</label>
-                <Textarea
-                  value={currentTask.content}
-                  onChange={(e) =>
-                    handleUpdateTask(currentTaskIndex, { content: e.target.value })
-                  }
-                  className="min-h-[80px]"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Priority</label>
-                <Select
-                  value={currentTask.priority}
-                  onValueChange={(value: Priority) =>
-                    handleUpdateTask(currentTaskIndex, { priority: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">
-                      <span className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-red-500" />
-                        High
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="medium">
-                      <span className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                        Medium
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="low">
-                      <span className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-green-500" />
-                        Low
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Project</label>
-                <Select
-                  value={currentTask.project || 'none'}
-                  onValueChange={(value) =>
-                    handleUpdateTask(currentTaskIndex, {
-                      project: value === 'none' ? undefined : value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Project</SelectItem>
-                    {allProjects.map((project) => (
-                      <SelectItem key={project} value={project}>
-                        {project}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Category</label>
-                <Select
-                  value={currentTask.category || 'none'}
-                  onValueChange={(value) =>
-                    handleUpdateTask(currentTaskIndex, {
-                      category: value === 'none' ? undefined : value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Category</SelectItem>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => setShowEditDialog(false)}>
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <EditTaskDialog
+          task={currentTask}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          availableProjects={allProjects}
+          onSave={(updates) => {
+            // Convert Date to string for ParsedTask compatibility
+            const parsedUpdates: Partial<ParsedTask> = {
+              ...updates,
+              dueDate: updates.dueDate instanceof Date
+                ? updates.dueDate.toISOString().split('T')[0]
+                : updates.dueDate
+            }
+            handleUpdateTask(currentTaskIndex, parsedUpdates)
+          }}
+        />
       </div>
     )
   }
@@ -496,7 +385,7 @@ export function ApprovalScreen() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">Review Tasks</h1>
+            <h1 className="text-xl font-semibold mb-1">Review Tasks</h1>
             <p className="text-sm text-muted-foreground">
               {tasks.length} tasks extracted. Edit before saving.
             </p>
