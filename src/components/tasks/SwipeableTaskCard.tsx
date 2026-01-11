@@ -64,7 +64,8 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
     },
     trackMouse: false,
     trackTouch: true,
-    preventScrollOnSwipe: true,
+    preventScrollOnSwipe: false, // Allow vertical scrolling
+    delta: 10, // Require 10px horizontal movement before capturing swipe
   })
 
   if (!isMobile) {
