@@ -13,6 +13,7 @@ import {
 } from '@/services/firestore'
 import type { Task, Project, TaskContextType } from '@/types'
 import { getProjectColor, getProjectIcon } from '@/lib/utils'
+import { checkAndScheduleDailySummary } from '@/lib/notifications'
 
 const TaskContext = createContext<TaskContextType | null>(null)
 
@@ -48,6 +49,38 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       unsubscribeProjects()
     }
   }, [user])
+
+  // Check for daily summary notification
+  useEffect(() => {
+    if (tasks.length === 0) return
+
+    const activeTasks = tasks.filter((t) => !t.completed && !t.archived)
+    const completedTasks = tasks.filter((t) => t.completed && !t.archived)
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const dueTodayTasks = activeTasks.filter((t) => {
+      if (!t.dueDate) return false
+      const dueDate = new Date(t.dueDate)
+      dueDate.setHours(0, 0, 0, 0)
+      return dueDate.getTime() === today.getTime()
+    }).length
+
+    const overdueTasksCount = activeTasks.filter((t) => {
+      if (!t.dueDate) return false
+      const dueDate = new Date(t.dueDate)
+      dueDate.setHours(0, 0, 0, 0)
+      return dueDate.getTime() < today.getTime()
+    }).length
+
+    checkAndScheduleDailySummary({
+      totalTasks: activeTasks.length,
+      completedTasks: completedTasks.length,
+      dueTodayTasks,
+      overdueTasksCount,
+    })
+  }, [tasks])
 
   const addTask = async (
     task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'>
