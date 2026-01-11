@@ -252,11 +252,86 @@ export function TimelineView() {
                     items={allDayTasks.map((t) => t.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-3 min-h-[100px]">
-                      {dayTasksGrouped.morning.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">Morning</div>
-                          {dayTasksGrouped.morning.map((task) => (
+                    <div className="space-y-4 min-h-[400px]">
+                      {/* Morning Section */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                            Morning
+                          </div>
+                          <div className="flex-1 h-px bg-amber-200 dark:bg-amber-900/30"></div>
+                        </div>
+                        <div className="space-y-2 min-h-[60px]">
+                          {dayTasksGrouped.morning.length > 0 ? (
+                            dayTasksGrouped.morning.map((task) => (
+                              isMobile ? (
+                                <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                              ) : (
+                                <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                              )
+                            ))
+                          ) : (
+                            <div className="text-xs text-muted-foreground/50 italic text-center py-4">
+                              No tasks scheduled
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Afternoon Section */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wide">
+                            Afternoon
+                          </div>
+                          <div className="flex-1 h-px bg-orange-200 dark:bg-orange-900/30"></div>
+                        </div>
+                        <div className="space-y-2 min-h-[60px]">
+                          {dayTasksGrouped.afternoon.length > 0 ? (
+                            dayTasksGrouped.afternoon.map((task) => (
+                              isMobile ? (
+                                <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                              ) : (
+                                <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                              )
+                            ))
+                          ) : (
+                            <div className="text-xs text-muted-foreground/50 italic text-center py-4">
+                              No tasks scheduled
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Evening Section */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+                            Evening
+                          </div>
+                          <div className="flex-1 h-px bg-indigo-200 dark:bg-indigo-900/30"></div>
+                        </div>
+                        <div className="space-y-2 min-h-[60px]">
+                          {dayTasksGrouped.evening.length > 0 ? (
+                            dayTasksGrouped.evening.map((task) => (
+                              isMobile ? (
+                                <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                              ) : (
+                                <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                              )
+                            ))
+                          ) : (
+                            <div className="text-xs text-muted-foreground/50 italic text-center py-4">
+                              No tasks scheduled
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Unspecified time tasks */}
+                      {dayTasksGrouped.unspecified.length > 0 && (
+                        <div className="space-y-2 pt-2 border-t border-dashed border-muted">
+                          {dayTasksGrouped.unspecified.map((task) => (
                             isMobile ? (
                               <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
                             ) : (
@@ -265,37 +340,6 @@ export function TimelineView() {
                           ))}
                         </div>
                       )}
-                      {dayTasksGrouped.afternoon.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">Afternoon</div>
-                          {dayTasksGrouped.afternoon.map((task) => (
-                            isMobile ? (
-                              <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
-                            ) : (
-                              <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
-                            )
-                          ))}
-                        </div>
-                      )}
-                      {dayTasksGrouped.evening.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">Evening</div>
-                          {dayTasksGrouped.evening.map((task) => (
-                            isMobile ? (
-                              <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
-                            ) : (
-                              <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
-                            )
-                          ))}
-                        </div>
-                      )}
-                      {dayTasksGrouped.unspecified.length > 0 && dayTasksGrouped.unspecified.map((task) => (
-                        isMobile ? (
-                          <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
-                        ) : (
-                          <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
-                        )
-                      ))}
                     </div>
                   </SortableContext>
                 </CardContent>
