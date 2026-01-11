@@ -163,6 +163,7 @@ export function subscribeToProjects(
         id: doc.id,
         name: data.name,
         color: data.color,
+        icon: data.icon,
         userId: data.userId,
         createdAt: toDate(data.createdAt) || new Date(),
       }
@@ -183,7 +184,7 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  updates: Partial<Pick<Project, 'name' | 'color'>>
+  updates: Partial<Pick<Project, 'name' | 'color' | 'icon'>>
 ): Promise<void> {
   const docRef = doc(db, PROJECTS_COLLECTION, id)
   await updateDoc(docRef, updates)

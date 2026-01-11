@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Brain, Moon, Sun, LogOut, User, Download, Share, Settings } from 'lucide-react'
+import { Moon, Sun, LogOut, User, Download, Share, Settings } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 
@@ -46,9 +46,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Brain className="h-6 w-6 text-primary" />
-          <span className="font-semibold">Brain Dumper</span>
+        <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+          <img
+            src={theme === 'dark' ? '/logo-full-transparent-white-text.svg' : '/logo-full-transparent-dark-text.svg'}
+            alt="Brain Dumper"
+            className="h-8"
+          />
         </Link>
 
         <div className="flex flex-1 items-center justify-end gap-2">

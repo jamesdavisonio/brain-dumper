@@ -86,11 +86,12 @@ For each task, identify:
 2. Any project it belongs to (if mentioned) - match to existing projects when possible
 3. Priority (high, medium, low) - infer from urgency words
 4. Due date (if mentioned, as ISO date string YYYY-MM-DD format)
-5. Scheduled time (if time of day is mentioned, use 24-hour HH:MM format):
-   - "morning" → "09:00"
-   - "afternoon" → "14:00"
-   - "evening" → "18:00"
+5. Scheduled time (if time of day is mentioned):
+   - "morning" → "Morning"
+   - "afternoon" → "Afternoon"
+   - "evening" → "Evening"
    - Specific times like "3pm" → "15:00", "10:30am" → "10:30"
+   - IMPORTANT: Keep "Morning", "Afternoon", "Evening" as text labels, not as specific times
 6. Time estimate in minutes (if mentioned or you can reasonably estimate)
 7. Recurrence pattern (if this is a repeating task)
 8. Category (auto-assign based on task content)
@@ -109,7 +110,7 @@ Return a JSON object with this structure:
       "project": "Project name or null",
       "priority": "high|medium|low",
       "dueDate": "YYYY-MM-DD or null",
-      "scheduledTime": "HH:MM or null",
+      "scheduledTime": "Morning|Afternoon|Evening|HH:MM or null",
       "timeEstimate": 30,
       "recurrence": { "type": "weekly", "interval": 1, "daysOfWeek": [1] } or null,
       "category": "Work|Personal|Health|Finance|Shopping|Home|Learning|Social|Travel|Admin"
