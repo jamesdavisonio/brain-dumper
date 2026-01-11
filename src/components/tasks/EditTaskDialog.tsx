@@ -18,14 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import { CalendarIcon, Clock, Tag, Repeat, Plus, Minus } from 'lucide-react'
-import { cn, formatDate } from '@/lib/utils'
+import { DateTimePicker, type DateTimeValue } from '@/components/ui/date-time-picker'
+import { Clock, Tag, Repeat, Plus, Minus } from 'lucide-react'
 import { CATEGORIES, RECURRENCE_OPTIONS } from '@/lib/constants'
 import type { Task, Priority, Recurrence } from '@/types'
 
@@ -35,6 +29,7 @@ interface TaskData {
   project?: string
   category?: string
   dueDate?: Date | string
+  dueTime?: string
   timeEstimate?: number
   recurrence?: Recurrence
 }
@@ -54,7 +49,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, availableProj
   const [priority, setPriority] = useState<Priority>('medium')
   const [project, setProject] = useState<string>('')
   const [category, setCategory] = useState<string>('')
-  const [dueDate, setDueDate] = useState<Date | undefined>()
+  const [dueDateTimeValue, setDueDateTimeValue] = useState<DateTimeValue>({ date: undefined, timeOfDay: null })
   const [timeEstimate, setTimeEstimate] = useState<number | undefined>()
   const [recurrence, setRecurrence] = useState<Recurrence | undefined>()
 
@@ -66,9 +61,11 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, availableProj
       setCategory(task.category || '')
       // Handle both Date and string formats
       if (task.dueDate) {
-        setDueDate(typeof task.dueDate === 'string' ? new Date(task.dueDate) : task.dueDate)
+        const date = typeof task.dueDate === 'string' ? new Date(task.dueDate) : task.dueDate
+        const timeOfDay = (task.dueTime as 'morning' | 'afternoon' | 'evening') || null
+        setDueDateTimeValue({ date, timeOfDay })
       } else {
-        setDueDate(undefined)
+        setDueDateTimeValue({ date: undefined, timeOfDay: null })
       }
       setTimeEstimate(task.timeEstimate)
       setRecurrence(task.recurrence)
@@ -83,7 +80,8 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, availableProj
       priority,
       project: project || undefined,
       category: category || undefined,
-      dueDate,
+      dueDate: dueDateTimeValue.date,
+      dueTime: dueDateTimeValue.timeOfDay || undefined,
       timeEstimate,
       recurrence,
     }
@@ -207,40 +205,11 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, availableProj
 
             <div className="space-y-2">
               <Label>Due Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !dueDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? formatDate(dueDate) : 'Pick a date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                  />
-                  {dueDate && (
-                    <div className="p-2 border-t">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => setDueDate(undefined)}
-                      >
-                        Clear date
-                      </Button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
+              <DateTimePicker
+                value={dueDateTimeValue}
+                onChange={setDueDateTimeValue}
+                placeholder="Pick a date..."
+              />
             </div>
           </div>
 
