@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { parseBrainDump } from '@/services/gemini'
 import { Loader2, Sparkles, History, Mic } from 'lucide-react'
-import { BrainDumpHistoryDialog } from '@/components/screens/BrainDumpHistory'
 import { VoiceInputGuide } from '@/components/screens/VoiceInputGuide'
 
 export function InputScreen() {
@@ -15,9 +14,19 @@ export function InputScreen() {
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showHistory, setShowHistory] = useState(false)
   const [showVoiceGuide, setShowVoiceGuide] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Check for reprocess content from history
+  useEffect(() => {
+    const reprocessContent = sessionStorage.getItem('reprocessContent')
+    if (reprocessContent) {
+      setInput(reprocessContent)
+      sessionStorage.removeItem('reprocessContent')
+      // Focus textarea after short delay
+      setTimeout(() => textareaRef.current?.focus(), 100)
+    }
+  }, [])
 
   // Keyboard shortcut: Ctrl/Cmd + Enter to process
   useEffect(() => {
@@ -75,15 +84,6 @@ export function InputScreen() {
     }
   }
 
-  const handleReprocess = (content: string) => {
-    setInput(content)
-    setShowHistory(false)
-    // Focus the textarea after a short delay to ensure the dialog is closed
-    setTimeout(() => {
-      textareaRef.current?.focus()
-    }, 100)
-  }
-
   const placeholderText = `Example:
 - Need to finish the quarterly report by Friday, it's urgent
 - Call mom tomorrow about her birthday party
@@ -107,7 +107,7 @@ export function InputScreen() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowHistory(true)}
+              onClick={() => navigate('/history')}
             >
               <History className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">History</span>
@@ -180,11 +180,6 @@ export function InputScreen() {
         </CardContent>
       </Card>
 
-      <BrainDumpHistoryDialog
-        open={showHistory}
-        onOpenChange={setShowHistory}
-        onReprocess={handleReprocess}
-      />
       <VoiceInputGuide open={showVoiceGuide} onOpenChange={setShowVoiceGuide} />
     </div>
   )
