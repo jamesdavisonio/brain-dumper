@@ -182,7 +182,8 @@ function validateRecurrence(recurrence: unknown): Recurrence | undefined {
 
 function validateCategory(category: unknown): string | undefined {
   if (typeof category !== 'string') return undefined
-  if (CATEGORIES.includes(category)) return category
+  // Type assertion needed because CATEGORIES is readonly
+  if ((CATEGORIES as readonly string[]).includes(category)) return category
   return undefined
 }
 

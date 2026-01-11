@@ -30,7 +30,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag, Edit } from 'lucide-react'
 import type { ParsedTask, Priority, Recurrence } from '@/types'
 import { cn, formatDate } from '@/lib/utils'
-import { RECURRENCE_OPTIONS } from '@/lib/constants'
+import { CATEGORIES, RECURRENCE_OPTIONS } from '@/lib/constants'
 import { useToast } from '@/hooks/useToast'
 import { EditTaskDialog } from '@/components/tasks/EditTaskDialog'
 
@@ -362,7 +362,14 @@ export function ApprovalScreen() {
           onOpenChange={setShowEditDialog}
           availableProjects={allProjects}
           onSave={(updates) => {
-            handleUpdateTask(currentTaskIndex, updates)
+            // Convert Date to string for ParsedTask compatibility
+            const parsedUpdates: Partial<ParsedTask> = {
+              ...updates,
+              dueDate: updates.dueDate instanceof Date
+                ? updates.dueDate.toISOString().split('T')[0]
+                : updates.dueDate
+            }
+            handleUpdateTask(currentTaskIndex, parsedUpdates)
           }}
         />
       </div>

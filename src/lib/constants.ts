@@ -11,6 +11,8 @@ export const CATEGORIES = [
   'Admin',
 ] as const
 
+export type Category = typeof CATEGORIES[number]
+
 export const RECURRENCE_OPTIONS = [
   { value: 'none', label: 'No repeat' },
   { value: 'daily', label: 'Daily' },
