@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTasks } from '@/context/TaskContext'
-import { TaskCard } from '@/components/tasks/TaskCard'
+import { SwipeableTaskCard } from '@/components/tasks/SwipeableTaskCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -25,7 +25,7 @@ import { addDays, format, isSameDay, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
 import type { Task } from '@/types'
 
-function SortableTaskCard({ task, inTimeline = false }: { task: Task; inTimeline?: boolean }) {
+function SortableSwipeableTaskCard({ task, inTimeline = false }: { task: Task; inTimeline?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id })
 
@@ -46,7 +46,7 @@ function SortableTaskCard({ task, inTimeline = false }: { task: Task; inTimeline
           <GripVertical className="h-4 w-4" />
         </button>
         <div className="flex-1">
-          <TaskCard task={task} inTimeline={inTimeline} />
+          <SwipeableTaskCard task={task} inTimeline={inTimeline} />
         </div>
       </div>
     </div>
@@ -203,7 +203,7 @@ export function TimelineView() {
               >
                 <div className="space-y-2">
                   {unscheduledTasks.map((task) => (
-                    <SortableTaskCard key={task.id} task={task} />
+                    <SortableSwipeableTaskCard key={task.id} task={task} />
                   ))}
                   {unscheduledTasks.length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-4">
@@ -245,7 +245,7 @@ export function TimelineView() {
                   >
                     <div className="space-y-2 min-h-[100px]">
                       {dayTasks.map((task) => (
-                        <SortableTaskCard key={task.id} task={task} inTimeline={true} />
+                        <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
                       ))}
                     </div>
                   </SortableContext>
@@ -258,7 +258,7 @@ export function TimelineView() {
         <DragOverlay>
           {activeTask && (
             <div className="opacity-80">
-              <TaskCard task={activeTask} inTimeline={true} />
+              <SwipeableTaskCard task={activeTask} inTimeline={true} />
             </div>
           )}
         </DragOverlay>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTasks } from '@/context/TaskContext'
-import { TaskCard } from '@/components/tasks/TaskCard'
+import { SwipeableTaskCard } from '@/components/tasks/SwipeableTaskCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -182,7 +182,7 @@ export function ListView() {
             </div>
           ) : (
             activeTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <SwipeableTaskCard key={task.id} task={task} />
             ))
           )}
         </TabsContent>
@@ -234,7 +234,7 @@ export function ListView() {
                 {!isCollapsed && (
                   <div className="space-y-3">
                     {projectTasks.map((task) => (
-                      <TaskCard key={task.id} task={task} showProject={false} />
+                      <SwipeableTaskCard key={task.id} task={task} showProject={false} />
                     ))}
                   </div>
                 )}
@@ -250,7 +250,7 @@ export function ListView() {
             </div>
           ) : (
             completedTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <SwipeableTaskCard key={task.id} task={task} />
             ))
           )}
         </TabsContent>
