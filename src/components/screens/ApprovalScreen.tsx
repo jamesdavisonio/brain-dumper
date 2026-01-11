@@ -152,6 +152,7 @@ export function ApprovalScreen() {
         project: task.project,
         priority: task.priority,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+        scheduledDate: task.dueDate ? new Date(task.dueDate) : undefined, // Also set scheduledDate so tasks appear in timeline
         timeEstimate: task.timeEstimate,
         recurrence: task.recurrence,
         category: task.category,

@@ -13,6 +13,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Check,
   MoreVertical,
   Calendar as CalendarIcon,
@@ -36,6 +46,7 @@ export function TaskCard({ task, showProject = true, inTimeline = false }: TaskC
   const { updateTask, deleteTask, projects } = useTasks()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const project = projects.find((p) => p.name === task.project)
 
@@ -58,6 +69,7 @@ export function TaskCard({ task, showProject = true, inTimeline = false }: TaskC
 
   const handleDelete = () => {
     deleteTask(task.id)
+    setIsDeleteDialogOpen(false)
   }
 
   return (
@@ -179,7 +191,7 @@ export function TaskCard({ task, showProject = true, inTimeline = false }: TaskC
                 Archive
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={handleDelete}
+                onClick={() => setIsDeleteDialogOpen(true)}
                 className="text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -194,6 +206,25 @@ export function TaskCard({ task, showProject = true, inTimeline = false }: TaskC
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
       />
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{task.content}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }
