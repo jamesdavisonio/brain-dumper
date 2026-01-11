@@ -57,6 +57,21 @@ ${projectsSection}
 CATEGORIES for auto-categorization: ${CATEGORIES.join(', ')}
 Assign the most appropriate category to each task based on its content.
 
+IMPORTANT - Distinguish between MULTI-DAY tasks vs RECURRING tasks:
+
+MULTI-DAY tasks (create SEPARATE tasks for each day):
+- "on Monday, Tuesday, and Wednesday" → Create 3 separate tasks, one for each day
+- "for Tuesday, Wednesday and Thursday" → Create 3 separate tasks
+- "task for Mon and Wed" → Create 2 separate tasks
+- When multiple specific days are listed, create individual tasks
+
+RECURRING tasks (single task with recurrence pattern):
+- "every Monday" → Single task with weekly recurrence on Monday
+- "daily" or "every day" → Single task with daily recurrence
+- "weekly" or "every week" → Single task with weekly recurrence
+- "every Monday and Wednesday" → Single task with weekly recurrence on those days
+- When "every" or "weekly/daily/monthly" is used, create ONE recurring task
+
 RECURRENCE patterns to detect:
 - "every day", "daily" → { type: "daily", interval: 1 }
 - "every week", "weekly" → { type: "weekly", interval: 1 }
@@ -71,9 +86,14 @@ For each task, identify:
 2. Any project it belongs to (if mentioned) - match to existing projects when possible
 3. Priority (high, medium, low) - infer from urgency words
 4. Due date (if mentioned, as ISO date string YYYY-MM-DD format)
-5. Time estimate in minutes (if mentioned or you can reasonably estimate)
-6. Recurrence pattern (if this is a repeating task)
-7. Category (auto-assign based on task content)
+5. Scheduled time (if time of day is mentioned, use 24-hour HH:MM format):
+   - "morning" → "09:00"
+   - "afternoon" → "14:00"
+   - "evening" → "18:00"
+   - Specific times like "3pm" → "15:00", "10:30am" → "10:30"
+6. Time estimate in minutes (if mentioned or you can reasonably estimate)
+7. Recurrence pattern (if this is a repeating task)
+8. Category (auto-assign based on task content)
 
 Priority inference rules:
 - "urgent", "asap", "immediately", "critical" → high
@@ -89,6 +109,7 @@ Return a JSON object with this structure:
       "project": "Project name or null",
       "priority": "high|medium|low",
       "dueDate": "YYYY-MM-DD or null",
+      "scheduledTime": "HH:MM or null",
       "timeEstimate": 30,
       "recurrence": { "type": "weekly", "interval": 1, "daysOfWeek": [1] } or null,
       "category": "Work|Personal|Health|Finance|Shopping|Home|Learning|Social|Travel|Admin"
@@ -135,6 +156,7 @@ export async function parseBrainDump(
       project: task.project ? String(task.project) : undefined,
       priority: validatePriority(task.priority),
       dueDate: task.dueDate ? String(task.dueDate) : undefined,
+      scheduledTime: task.scheduledTime ? String(task.scheduledTime) : undefined,
       timeEstimate: typeof task.timeEstimate === 'number' ? task.timeEstimate : undefined,
       recurrence: validateRecurrence(task.recurrence),
       category: validateCategory(task.category),

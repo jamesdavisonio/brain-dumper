@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Brain, Moon, Sun, LogOut, User, Download, Share } from 'lucide-react'
+import { Brain, Moon, Sun, LogOut, User, Download, Share, Settings } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 
@@ -104,6 +104,13 @@ export function Header() {
                     <DropdownMenuSeparator />
                   </>
                 )}
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out

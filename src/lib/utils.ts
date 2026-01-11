@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { PROJECT_COLORS, PROJECT_ICONS } from './constants'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -42,11 +43,11 @@ export function getPriorityColor(priority: 'high' | 'medium' | 'low'): string {
 }
 
 export function getProjectColor(index: number): string {
-  const colors = [
-    '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6',
-    '#3b82f6', '#8b5cf6', '#ec4899', '#6366f1', '#06b6d4',
-  ]
-  return colors[index % colors.length]
+  return PROJECT_COLORS[index % PROJECT_COLORS.length]
+}
+
+export function getProjectIcon(index: number): string {
+  return PROJECT_ICONS[index % PROJECT_ICONS.length]
 }
 
 export function generateId(): string {

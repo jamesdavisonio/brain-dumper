@@ -152,6 +152,8 @@ export function ApprovalScreen() {
         project: task.project,
         priority: task.priority,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+        scheduledDate: task.dueDate ? new Date(task.dueDate) : undefined, // Also set scheduledDate so tasks appear in timeline
+        scheduledTime: task.scheduledTime,
         timeEstimate: task.timeEstimate,
         recurrence: task.recurrence,
         category: task.category,
@@ -283,7 +285,10 @@ export function ApprovalScreen() {
                     <p className="text-sm text-muted-foreground mb-2">Due Date</p>
                     <div className="flex items-center gap-2">
                       <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{formatDate(new Date(currentTask.dueDate))}</span>
+                      <span className="text-sm">
+                        {formatDate(new Date(currentTask.dueDate))}
+                        {currentTask.scheduledTime && ` at ${currentTask.scheduledTime}`}
+                      </span>
                     </div>
                   </div>
                 )}

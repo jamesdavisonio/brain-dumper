@@ -10,6 +10,8 @@ import { ListView } from '@/components/screens/ListView'
 import { TimelineView } from '@/components/screens/TimelineView'
 import { ArchiveView } from '@/components/screens/ArchiveView'
 import { AnalyticsView } from '@/components/screens/AnalyticsView'
+import { HistoryView } from '@/components/screens/HistoryView'
+import { SettingsView } from '@/components/screens/SettingsView'
 
 function AppRoutes() {
   return (
@@ -21,6 +23,8 @@ function AppRoutes() {
         <Route path="/timeline" element={<TimelineView />} />
         <Route path="/analytics" element={<AnalyticsView />} />
         <Route path="/archive" element={<ArchiveView />} />
+        <Route path="/history" element={<HistoryView />} />
+        <Route path="/settings" element={<SettingsView />} />
       </Routes>
     </Layout>
   )
