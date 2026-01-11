@@ -15,8 +15,9 @@ export interface Task {
   project?: string
   priority: Priority
   dueDate?: Date
+  dueTime?: string // 'morning' | 'afternoon' | 'evening' for time-of-day
   scheduledDate?: Date
-  scheduledTime?: string // HH:MM format (24-hour)
+  scheduledTime?: string // 'morning' | 'afternoon' | 'evening' or HH:MM format (24-hour)
   timeEstimate?: number // minutes
   completed: boolean
   archived: boolean
@@ -49,7 +50,8 @@ export interface ParsedTask {
   project?: string
   priority: Priority
   dueDate?: string
-  scheduledTime?: string // HH:MM format (24-hour)
+  dueTime?: string // 'morning' | 'afternoon' | 'evening' for time-of-day
+  scheduledTime?: string // 'morning' | 'afternoon' | 'evening' or HH:MM format (24-hour)
   timeEstimate?: number
   recurrence?: Recurrence
   category?: string

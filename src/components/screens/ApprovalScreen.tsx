@@ -14,11 +14,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -26,10 +21,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Calendar } from '@/components/ui/calendar'
+import { DateTimePicker, type DateTimeValue } from '@/components/ui/date-time-picker'
 import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag, Edit } from 'lucide-react'
 import type { ParsedTask, Priority, Recurrence } from '@/types'
-import { cn, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 import { CATEGORIES, RECURRENCE_OPTIONS } from '@/lib/constants'
 import { useToast } from '@/hooks/useToast'
 import { EditTaskDialog } from '@/components/tasks/EditTaskDialog'
@@ -152,6 +147,7 @@ export function ApprovalScreen() {
         project: task.project,
         priority: task.priority,
         dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+        dueTime: task.dueTime,
         scheduledDate: task.dueDate ? new Date(task.dueDate) : undefined, // Also set scheduledDate so tasks appear in timeline
         scheduledTime: task.scheduledTime,
         timeEstimate: task.timeEstimate,
@@ -505,44 +501,20 @@ export function ApprovalScreen() {
                     </SelectContent>
                   </Select>
 
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-[130px] justify-start text-left font-normal',
-                          !task.dueDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {task.dueDate ? formatDate(new Date(task.dueDate)) : 'Due date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={task.dueDate ? new Date(task.dueDate) : undefined}
-                        onSelect={(date) =>
-                          handleUpdateTask(index, {
-                            dueDate: date ? date.toISOString().split('T')[0] : undefined,
-                          })
-                        }
-                        initialFocus
-                      />
-                      {task.dueDate && (
-                        <div className="p-2 border-t">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => handleUpdateTask(index, { dueDate: undefined })}
-                          >
-                            Clear date
-                          </Button>
-                        </div>
-                      )}
-                    </PopoverContent>
-                  </Popover>
+                  <DateTimePicker
+                    value={{
+                      date: task.dueDate ? new Date(task.dueDate) : undefined,
+                      timeOfDay: (task.dueTime as 'morning' | 'afternoon' | 'evening') || null,
+                    }}
+                    onChange={(value: DateTimeValue) =>
+                      handleUpdateTask(index, {
+                        dueDate: value.date ? value.date.toISOString().split('T')[0] : undefined,
+                        dueTime: value.timeOfDay || undefined,
+                      })
+                    }
+                    placeholder="Due date"
+                    className="w-[200px]"
+                  />
                 </div>
 
                 <div className="flex flex-wrap gap-2">
