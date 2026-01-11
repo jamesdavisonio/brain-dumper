@@ -82,6 +82,9 @@ export function EditTaskDialog({ task, open, onOpenChange, onSave, availableProj
       category: category || undefined,
       dueDate: dueDateTimeValue.date,
       dueTime: dueDateTimeValue.timeOfDay || undefined,
+      // Auto-schedule task when due date is set
+      scheduledDate: dueDateTimeValue.date,
+      scheduledTime: dueDateTimeValue.timeOfDay || undefined,
       timeEstimate,
       recurrence,
     }
