@@ -11,7 +11,6 @@ import {
   DragStartEvent,
   closestCenter,
   PointerSensor,
-  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
@@ -58,16 +57,13 @@ export function TimelineView() {
   const [weekOffset, setWeekOffset] = useState(0)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
 
+  // Disable drag-and-drop on mobile (touch devices)
+  const isMobile = 'ontouchstart' in window
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
       },
     })
   )
@@ -88,16 +84,24 @@ export function TimelineView() {
   }, [tasks])
 
   const scheduledByDay = useMemo(() => {
-    const grouped: Record<string, Task[]> = {}
+    const grouped: Record<string, { morning: Task[]; afternoon: Task[]; evening: Task[]; unspecified: Task[] }> = {}
     weekDays.forEach((day) => {
       const dateKey = format(day, 'yyyy-MM-dd')
-      grouped[dateKey] = tasks.filter(
+      const dayTasks = tasks.filter(
         (t) =>
           !t.archived &&
           !t.completed &&
           t.scheduledDate &&
           isSameDay(t.scheduledDate, day)
       )
+
+      // Group tasks by time of day
+      grouped[dateKey] = {
+        morning: dayTasks.filter((t) => t.scheduledTime?.toLowerCase() === 'morning'),
+        afternoon: dayTasks.filter((t) => t.scheduledTime?.toLowerCase() === 'afternoon'),
+        evening: dayTasks.filter((t) => t.scheduledTime?.toLowerCase() === 'evening'),
+        unspecified: dayTasks.filter((t) => !t.scheduledTime || !['morning', 'afternoon', 'evening'].includes(t.scheduledTime.toLowerCase())),
+      }
     })
     return grouped
   }, [tasks, weekDays])
@@ -203,7 +207,11 @@ export function TimelineView() {
               >
                 <div className="space-y-2">
                   {unscheduledTasks.map((task) => (
-                    <SortableSwipeableTaskCard key={task.id} task={task} />
+                    isMobile ? (
+                      <SwipeableTaskCard key={task.id} task={task} />
+                    ) : (
+                      <SortableSwipeableTaskCard key={task.id} task={task} />
+                    )
                   ))}
                   {unscheduledTasks.length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-4">
@@ -218,7 +226,8 @@ export function TimelineView() {
           {/* Day columns */}
           {weekDays.map((day) => {
             const dateKey = format(day, 'yyyy-MM-dd')
-            const dayTasks = scheduledByDay[dateKey] || []
+            const dayTasksGrouped = scheduledByDay[dateKey] || { morning: [], afternoon: [], evening: [], unspecified: [] }
+            const allDayTasks = [...dayTasksGrouped.morning, ...dayTasksGrouped.afternoon, ...dayTasksGrouped.evening, ...dayTasksGrouped.unspecified]
             const isToday = isSameDay(day, new Date())
 
             return (
@@ -240,12 +249,52 @@ export function TimelineView() {
                 <CardContent>
                   <SortableContext
                     id={`day-${dateKey}`}
-                    items={dayTasks.map((t) => t.id)}
+                    items={allDayTasks.map((t) => t.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-2 min-h-[100px]">
-                      {dayTasks.map((task) => (
-                        <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                    <div className="space-y-3 min-h-[100px]">
+                      {dayTasksGrouped.morning.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium text-muted-foreground">Morning</div>
+                          {dayTasksGrouped.morning.map((task) => (
+                            isMobile ? (
+                              <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                            ) : (
+                              <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                            )
+                          ))}
+                        </div>
+                      )}
+                      {dayTasksGrouped.afternoon.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium text-muted-foreground">Afternoon</div>
+                          {dayTasksGrouped.afternoon.map((task) => (
+                            isMobile ? (
+                              <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                            ) : (
+                              <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                            )
+                          ))}
+                        </div>
+                      )}
+                      {dayTasksGrouped.evening.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-medium text-muted-foreground">Evening</div>
+                          {dayTasksGrouped.evening.map((task) => (
+                            isMobile ? (
+                              <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                            ) : (
+                              <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                            )
+                          ))}
+                        </div>
+                      )}
+                      {dayTasksGrouped.unspecified.length > 0 && dayTasksGrouped.unspecified.map((task) => (
+                        isMobile ? (
+                          <SwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                        ) : (
+                          <SortableSwipeableTaskCard key={task.id} task={task} inTimeline={true} />
+                        )
                       ))}
                     </div>
                   </SortableContext>

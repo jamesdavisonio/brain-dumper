@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Brain, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 export function SignInCard() {
   const { signIn } = useAuth()
@@ -28,7 +28,11 @@ export function SignInCard() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="p-3 rounded-full bg-primary/10">
-              <Brain className="h-10 w-10 text-primary" />
+              <img
+                src="/icon-transparent.svg"
+                alt="Brain Dumper"
+                className="h-10 w-10"
+              />
             </div>
           </div>
           <CardTitle className="text-2xl">Brain Dumper</CardTitle>

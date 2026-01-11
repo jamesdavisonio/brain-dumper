@@ -22,8 +22,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Search, Filter, FolderOpen, ChevronDown, ChevronRight, Edit, CheckSquare, Tag, ArrowUpDown } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import type { Priority } from '@/types'
-import { CATEGORIES } from '@/lib/constants'
+import { CATEGORIES, PROJECT_COLORS, PROJECT_ICONS } from '@/lib/constants'
 
 export function ListView() {
   const { tasks, projects, loading, updateProject, updateTask, deleteTask } = useTasks()
@@ -33,8 +34,10 @@ export function ListView() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'dueDate' | 'priority' | 'createdAt'>('createdAt')
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set())
-  const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null)
+  const [editingProject, setEditingProject] = useState<{ id: string; name: string; color: string; icon: string } | null>(null)
   const [newProjectName, setNewProjectName] = useState('')
+  const [newProjectColor, setNewProjectColor] = useState('')
+  const [newProjectIcon, setNewProjectIcon] = useState('')
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set())
 
@@ -51,16 +54,37 @@ export function ListView() {
   }
 
   const handleEditProject = (projectId: string, projectName: string) => {
-    setEditingProject({ id: projectId, name: projectName })
-    setNewProjectName(projectName)
+    const project = projects.find((p) => p.id === projectId)
+    if (project) {
+      setEditingProject({ id: projectId, name: projectName, color: project.color, icon: project.icon })
+      setNewProjectName(projectName)
+      setNewProjectColor(project.color)
+      setNewProjectIcon(project.icon)
+    }
   }
 
   const handleSaveProjectName = async () => {
-    if (editingProject && newProjectName.trim() && newProjectName !== editingProject.name) {
-      await updateProject(editingProject.id, { name: newProjectName.trim() })
+    if (editingProject && newProjectName.trim()) {
+      const updates: { name?: string; color?: string; icon?: string } = {}
+
+      if (newProjectName.trim() !== editingProject.name) {
+        updates.name = newProjectName.trim()
+      }
+      if (newProjectColor !== editingProject.color) {
+        updates.color = newProjectColor
+      }
+      if (newProjectIcon !== editingProject.icon) {
+        updates.icon = newProjectIcon
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateProject(editingProject.id, updates)
+      }
     }
     setEditingProject(null)
     setNewProjectName('')
+    setNewProjectColor('')
+    setNewProjectIcon('')
   }
 
   const handleSelectionChange = (taskId: string, selected: boolean) => {
@@ -410,20 +434,61 @@ export function ListView() {
 
       {/* Edit Project Dialog */}
       <Dialog open={!!editingProject} onOpenChange={() => setEditingProject(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Project Name</DialogTitle>
+            <DialogTitle>Edit Project</DialogTitle>
             <DialogDescription>
-              Update the name of this project. All tasks will remain associated with it.
+              Update the name, icon, and color of this project. All tasks will remain associated with it.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              placeholder="Project name"
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveProjectName()}
-            />
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Project Name</label>
+              <Input
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder="Project name"
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveProjectName()}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Icon</label>
+              <div className="grid grid-cols-8 gap-2">
+                {PROJECT_ICONS.map((iconName) => {
+                  const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons] as React.ComponentType<{ className?: string }>
+                  return (
+                    <button
+                      key={iconName}
+                      type="button"
+                      onClick={() => setNewProjectIcon(iconName)}
+                      className={`p-2 rounded border hover:bg-accent transition-colors ${
+                        newProjectIcon === iconName ? 'border-primary bg-accent' : 'border-border'
+                      }`}
+                    >
+                      <IconComponent className="h-5 w-5" />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Color</label>
+              <div className="grid grid-cols-10 gap-2">
+                {PROJECT_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setNewProjectColor(color)}
+                    className={`h-8 w-8 rounded-full transition-transform ${
+                      newProjectColor === color ? 'ring-2 ring-offset-2 ring-primary scale-110' : ''
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingProject(null)}>
