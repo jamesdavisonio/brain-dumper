@@ -11,7 +11,6 @@ import {
   DragStartEvent,
   closestCenter,
   PointerSensor,
-  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
