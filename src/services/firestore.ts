@@ -52,7 +52,9 @@ export function subscribeToTasks(
         project: data.project,
         priority: data.priority,
         dueDate: toDate(data.dueDate),
+        dueTime: data.dueTime,
         scheduledDate: toDate(data.scheduledDate),
+        scheduledTime: data.scheduledTime,
         timeEstimate: data.timeEstimate,
         completed: data.completed,
         archived: data.archived,
@@ -134,7 +136,9 @@ export async function bulkCreateTasks(
     // Only add optional fields if they have values
     if (task.project) docData.project = task.project
     if (task.dueDate) docData.dueDate = toTimestamp(task.dueDate)
+    if (task.dueTime) docData.dueTime = task.dueTime
     if (task.scheduledDate) docData.scheduledDate = toTimestamp(task.scheduledDate)
+    if (task.scheduledTime) docData.scheduledTime = task.scheduledTime
     if (task.timeEstimate) docData.timeEstimate = task.timeEstimate
     if (task.recurrence) docData.recurrence = task.recurrence
     if (task.category) docData.category = task.category
