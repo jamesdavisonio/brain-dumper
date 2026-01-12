@@ -34,6 +34,9 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# Auto-generated service worker (generated from vite.config.ts)
+public/firebase-messaging-sw.js
+
 # TypeScript build info
 *.tsbuildinfo
 vite.config.js

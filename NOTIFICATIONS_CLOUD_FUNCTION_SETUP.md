@@ -308,15 +308,25 @@ function buildNotificationMessage(
 
 1. Go to Firebase Console → Project Settings → Cloud Messaging
 2. Under "Web Push certificates", click "Generate Key Pair"
-3. Copy the key and add it to your `.env` file:
+3. Copy the key and add it to GitHub Secrets:
+   - Go to your GitHub repo → Settings → Secrets and variables → Actions
+   - Add a new secret: `VITE_FIREBASE_VAPID_KEY` with the VAPID key value
+4. For local development, add it to your `.env` file:
 
 ```env
 VITE_FIREBASE_VAPID_KEY=YOUR_VAPID_KEY_HERE
 ```
 
-### Update Service Worker Configuration
+### Service Worker Configuration (Auto-Generated)
 
-Update `public/firebase-messaging-sw.js` with your actual Firebase config values from the Firebase Console.
+**No manual configuration needed!** The service worker `public/firebase-messaging-sw.js` is automatically generated at build time with your Firebase config from environment variables.
+
+The build process (via `vite.config.ts`) automatically injects your Firebase config into the service worker, so it's never committed to Git. This happens automatically in:
+- Local development (`npm run dev`)
+- Production builds (`npm run build`)
+- GitHub Actions deployments (uses GitHub Secrets)
+
+See `public/firebase-messaging-sw.README.md` for details.
 
 ## Step 5: Deploy the Cloud Function
 
