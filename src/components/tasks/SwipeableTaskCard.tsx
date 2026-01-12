@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import { TaskCard } from './TaskCard'
+import { EditTaskDialog } from './EditTaskDialog'
 import { Check, Archive, Pencil, ChevronUp, ChevronDown } from 'lucide-react'
 import { useTasks } from '@/context/TaskContext'
 import type { Task } from '@/types'
@@ -19,6 +20,7 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
   const { updateTask } = useTasks()
   const [swipeOffset, setSwipeOffset] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
   // Only enable swipe on mobile (touch devices)
@@ -48,11 +50,11 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
 
   const handleEdit = () => {
     setSwipeOffset(0)
-    // Trigger click on the card to open edit dialog
+    // Open edit dialog
     if (onEditClick) {
       onEditClick()
-    } else if (cardRef.current) {
-      cardRef.current.click()
+    } else {
+      setIsEditDialogOpen(true)
     }
   }
 
@@ -118,12 +120,13 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
     onSwiped: (eventData) => {
       if (!isMobile) return
 
-      const threshold = 50
+      const completeThreshold = 100 // Increased from 50 to prevent accidental completion
+      const revealThreshold = 60 // Threshold for revealing Edit/Archive buttons
 
-      if (eventData.deltaX > threshold) {
-        // Swipe right = complete action immediately
+      if (eventData.deltaX > completeThreshold) {
+        // Swipe right = complete action immediately (requires significant swipe)
         handleComplete()
-      } else if (eventData.deltaX < -threshold) {
+      } else if (eventData.deltaX < -revealThreshold) {
         // Swipe left = reveal Edit/Archive buttons (stay open)
         setSwipeOffset(-140)
       } else {
@@ -134,7 +137,7 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
     trackMouse: false,
     trackTouch: true,
     preventScrollOnSwipe: false, // Allow vertical scrolling
-    delta: 10, // Require 10px horizontal movement before capturing swipe
+    delta: 20, // Increased from 10 to 20 - require more horizontal movement before capturing swipe
   })
 
   if (!isMobile) {
@@ -221,6 +224,13 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
           )}
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <EditTaskDialog
+        task={task}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
     </div>
   )
 }
