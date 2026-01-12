@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import { TaskCard } from './TaskCard'
-import { Check, Archive, Pencil } from 'lucide-react'
+import { EditTaskDialog } from './EditTaskDialog'
+import { Check, Archive, Pencil, ChevronUp, ChevronDown } from 'lucide-react'
 import { useTasks } from '@/context/TaskContext'
 import type { Task } from '@/types'
 import { cn } from '@/lib/utils'
+import { addDays } from 'date-fns'
 
 interface SwipeableTaskCardProps {
   task: Task
@@ -18,6 +20,7 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
   const { updateTask } = useTasks()
   const [swipeOffset, setSwipeOffset] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
   // Only enable swipe on mobile (touch devices)
@@ -47,11 +50,53 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
 
   const handleEdit = () => {
     setSwipeOffset(0)
-    // Trigger click on the card to open edit dialog
+    // Open edit dialog
     if (onEditClick) {
       onEditClick()
-    } else if (cardRef.current) {
-      cardRef.current.click()
+    } else {
+      setIsEditDialogOpen(true)
+    }
+  }
+
+  // Move task up in time-of-day (afternoon -> morning, evening -> afternoon, next day morning -> previous day evening)
+  const handleMoveUp = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!task.scheduledDate) return
+
+    const currentTime = task.scheduledTime?.toLowerCase()
+
+    if (currentTime === 'afternoon') {
+      updateTask(task.id, { scheduledTime: 'morning' })
+    } else if (currentTime === 'evening') {
+      updateTask(task.id, { scheduledTime: 'afternoon' })
+    } else if (currentTime === 'morning') {
+      // Move to previous day evening
+      const prevDay = addDays(task.scheduledDate, -1)
+      updateTask(task.id, { scheduledDate: prevDay, scheduledTime: 'evening' })
+    } else {
+      // No time specified - set to evening
+      updateTask(task.id, { scheduledTime: 'evening' })
+    }
+  }
+
+  // Move task down in time-of-day (morning -> afternoon, afternoon -> evening, evening -> next day morning)
+  const handleMoveDown = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!task.scheduledDate) return
+
+    const currentTime = task.scheduledTime?.toLowerCase()
+
+    if (currentTime === 'morning') {
+      updateTask(task.id, { scheduledTime: 'afternoon' })
+    } else if (currentTime === 'afternoon') {
+      updateTask(task.id, { scheduledTime: 'evening' })
+    } else if (currentTime === 'evening') {
+      // Move to next day morning
+      const nextDay = addDays(task.scheduledDate, 1)
+      updateTask(task.id, { scheduledDate: nextDay, scheduledTime: 'morning' })
+    } else {
+      // No time specified - set to morning
+      updateTask(task.id, { scheduledTime: 'morning' })
     }
   }
 
@@ -75,12 +120,13 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
     onSwiped: (eventData) => {
       if (!isMobile) return
 
-      const threshold = 50
+      const completeThreshold = 100 // Increased from 50 to prevent accidental completion
+      const revealThreshold = 60 // Threshold for revealing Edit/Archive buttons
 
-      if (eventData.deltaX > threshold) {
-        // Swipe right = complete action immediately
+      if (eventData.deltaX > completeThreshold) {
+        // Swipe right = complete action immediately (requires significant swipe)
         handleComplete()
-      } else if (eventData.deltaX < -threshold) {
+      } else if (eventData.deltaX < -revealThreshold) {
         // Swipe left = reveal Edit/Archive buttons (stay open)
         setSwipeOffset(-140)
       } else {
@@ -91,7 +137,7 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
     trackMouse: false,
     trackTouch: true,
     preventScrollOnSwipe: false, // Allow vertical scrolling
-    delta: 10, // Require 10px horizontal movement before capturing swipe
+    delta: 20, // Increased from 10 to 20 - require more horizontal movement before capturing swipe
   })
 
   if (!isMobile) {
@@ -154,10 +200,37 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
           transform: `translateX(${swipeOffset}px)`,
         }}
       >
-        <div ref={cardRef}>
+        <div ref={cardRef} className="relative">
           <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} />
+
+          {/* Time navigation arrows - only in timeline mode */}
+          {inTimeline && task.scheduledDate && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 z-20">
+              <button
+                onClick={handleMoveUp}
+                className="p-1 rounded bg-primary/10 hover:bg-primary/20 active:bg-primary/30 transition-colors"
+                aria-label="Move to earlier time slot"
+              >
+                <ChevronUp className="h-4 w-4 text-primary" />
+              </button>
+              <button
+                onClick={handleMoveDown}
+                className="p-1 rounded bg-primary/10 hover:bg-primary/20 active:bg-primary/30 transition-colors"
+                aria-label="Move to later time slot"
+              >
+                <ChevronDown className="h-4 w-4 text-primary" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <EditTaskDialog
+        task={task}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
     </div>
   )
 }

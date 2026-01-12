@@ -75,12 +75,11 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
   return (
     <Card
       className={cn(
-        'group relative p-3 transition-all hover:shadow-md cursor-pointer',
+        'group relative p-3 transition-all',
         task.completed && 'opacity-60',
         projectBorder && project && 'border-l-4'
       )}
       style={projectBorder && project ? { borderLeftColor: project.color } : undefined}
-      onClick={() => setIsEditDialogOpen(true)}
     >
       <div className="flex items-start gap-2">
         <button
