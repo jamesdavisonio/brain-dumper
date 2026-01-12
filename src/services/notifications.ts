@@ -1,5 +1,5 @@
 import { getToken, onMessage } from 'firebase/messaging'
-import { doc, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, setDoc } from 'firebase/firestore'
 import { db, getMessagingInstance } from '@/lib/firebase'
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
