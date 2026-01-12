@@ -163,8 +163,19 @@ export async function parseBrainDump(
       category: validateCategory(task.category),
     }))
 
-    const suggestedProjects: string[] = (parsed.suggestedProjects || [])
-      .filter((p: unknown): p is string => typeof p === 'string')
+    // Start with Gemini's suggested projects
+    const suggestedProjectsSet = new Set<string>(
+      (parsed.suggestedProjects || []).filter((p: unknown): p is string => typeof p === 'string')
+    )
+
+    // Also include all project names mentioned in tasks
+    tasks.forEach((task) => {
+      if (task.project) {
+        suggestedProjectsSet.add(task.project)
+      }
+    })
+
+    const suggestedProjects = Array.from(suggestedProjectsSet)
 
     return { tasks, suggestedProjects }
   } catch (error) {
