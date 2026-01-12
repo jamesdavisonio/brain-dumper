@@ -1,96 +1,187 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/context/AuthContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Bell, BellOff, Check, X } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Bell, BellOff, Check, X, Loader2 } from 'lucide-react'
 import {
-  getNotificationPermissionStatus,
+  getNotificationPreferences,
+  cacheNotificationPreferences,
+  saveNotificationPreferences,
+  enableNotifications,
+  disableNotifications,
   requestNotificationPermission,
-  sendNotification,
-} from '@/lib/notifications'
+  type NotificationPreferences,
+} from '@/services/notifications'
+import { sendNotification } from '@/lib/notifications'
+import { useToast } from '@/hooks/useToast'
+
+const DAYS = [
+  { value: 0, label: 'Sun' },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+]
 
 export function NotificationSettings() {
-  const [permissionStatus, setPermissionStatus] = useState(getNotificationPermissionStatus())
-  const [notificationsEnabled, setNotificationsEnabled] = useState(
-    localStorage.getItem('notificationsEnabled') === 'true'
-  )
-  const [dailySummaryEnabled, setDailySummaryEnabled] = useState(
-    localStorage.getItem('dailySummaryEnabled') === 'true'
-  )
-  const [dailySummaryTime, setDailySummaryTime] = useState(
-    localStorage.getItem('dailySummaryTime') || '09:00'
-  )
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const [preferences, setPreferences] = useState<NotificationPreferences>(getNotificationPreferences())
+  const [permissionGranted, setPermissionGranted] = useState(Notification.permission === 'granted')
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     // Listen for permission changes
     const checkPermission = () => {
-      setPermissionStatus(getNotificationPermissionStatus())
+      setPermissionGranted(Notification.permission === 'granted')
     }
 
-    // Check every second (permission can change from browser settings)
     const interval = setInterval(checkPermission, 1000)
-
     return () => clearInterval(interval)
   }, [])
 
   const handleRequestPermission = async () => {
-    try {
-      const result = await requestNotificationPermission()
+    const granted = await requestNotificationPermission()
+    setPermissionGranted(granted)
 
-      if (result === 'granted') {
-        setPermissionStatus(getNotificationPermissionStatus())
-        setNotificationsEnabled(true)
-        localStorage.setItem('notificationsEnabled', 'true')
-
-        // Send test notification
-        sendNotification('Notifications Enabled', {
-          body: 'You will now receive task reminders and daily summaries.',
-        })
-      } else if (result === 'denied') {
-        setPermissionStatus(getNotificationPermissionStatus())
-      }
-    } catch (error) {
-      console.error('Failed to request notification permission:', error)
-    }
-  }
-
-  const handleToggleNotifications = () => {
-    if (!permissionStatus.granted) {
-      handleRequestPermission()
-      return
-    }
-
-    const newValue = !notificationsEnabled
-    setNotificationsEnabled(newValue)
-    localStorage.setItem('notificationsEnabled', String(newValue))
-
-    if (newValue) {
-      sendNotification('Notifications Enabled', {
-        body: 'You will now receive task reminders.',
+    if (granted) {
+      toast({
+        title: 'Permission granted',
+        description: 'You can now receive notifications.',
+      })
+    } else {
+      toast({
+        title: 'Permission denied',
+        description: 'Please enable notifications in your browser settings.',
+        variant: 'destructive',
       })
     }
   }
 
-  const handleToggleDailySummary = () => {
-    const newValue = !dailySummaryEnabled
-    setDailySummaryEnabled(newValue)
-    localStorage.setItem('dailySummaryEnabled', String(newValue))
+  const handleEnableNotifications = async () => {
+    if (!user) return
+
+    setIsSaving(true)
+    try {
+      const success = await enableNotifications(user.uid)
+
+      if (success) {
+        const newPrefs = { ...preferences, enabled: true }
+        setPreferences(newPrefs)
+        cacheNotificationPreferences(newPrefs)
+
+        toast({
+          title: 'Notifications enabled',
+          description: `You'll receive daily task notifications at ${preferences.time}.`,
+        })
+
+        // Send test notification
+        sendNotification('Notifications Enabled', {
+          body: `You'll receive daily task summaries at ${preferences.time}.`,
+        })
+      } else {
+        toast({
+          title: 'Failed to enable notifications',
+          description: 'Please check your browser permissions.',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      console.error('Error enabling notifications:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to enable notifications. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDisableNotifications = async () => {
+    if (!user) return
+
+    setIsSaving(true)
+    try {
+      await disableNotifications(user.uid)
+
+      const newPrefs = { ...preferences, enabled: false }
+      setPreferences(newPrefs)
+      cacheNotificationPreferences(newPrefs)
+
+      toast({
+        title: 'Notifications disabled',
+        description: "You won't receive daily task notifications.",
+      })
+    } catch (error) {
+      console.error('Error disabling notifications:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to disable notifications. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleTimeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user) return
+
     const newTime = e.target.value
-    setDailySummaryTime(newTime)
-    localStorage.setItem('dailySummaryTime', newTime)
+    const newPrefs = { ...preferences, time: newTime }
+    setPreferences(newPrefs)
+    cacheNotificationPreferences(newPrefs)
+
+    try {
+      await saveNotificationPreferences(user.uid, newPrefs)
+    } catch (error) {
+      console.error('Error saving time:', error)
+    }
+  }
+
+  const handleDayToggle = async (day: number) => {
+    if (!user) return
+
+    const newDays = preferences.days.includes(day)
+      ? preferences.days.filter((d) => d !== day)
+      : [...preferences.days, day].sort()
+
+    // Don't allow removing all days
+    if (newDays.length === 0) {
+      toast({
+        title: 'Invalid selection',
+        description: 'You must select at least one day.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const newPrefs = { ...preferences, days: newDays }
+    setPreferences(newPrefs)
+    cacheNotificationPreferences(newPrefs)
+
+    try {
+      await saveNotificationPreferences(user.uid, newPrefs)
+    } catch (error) {
+      console.error('Error saving days:', error)
+    }
   }
 
   const handleTestNotification = () => {
     sendNotification('Test Notification', {
-      body: 'This is a test notification from Brain Dumper.',
+      body: 'This is what your daily task notifications will look like.',
     })
   }
 
-  if (!permissionStatus.supported) {
+  const notSupported = !('Notification' in window)
+
+  if (notSupported) {
     return (
       <Card>
         <CardHeader>
@@ -111,10 +202,10 @@ export function NotificationSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          Notification Settings
+          Daily Task Notifications
         </CardTitle>
         <CardDescription>
-          Manage how and when you receive notifications
+          Get a daily summary of your scheduled tasks with Morning/Afternoon/Evening indicators
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -122,12 +213,12 @@ export function NotificationSettings() {
         <div className="space-y-2">
           <Label>Permission Status</Label>
           <div className="flex items-center gap-2">
-            {permissionStatus.granted ? (
+            {permissionGranted ? (
               <div className="flex items-center gap-2 text-green-600">
                 <Check className="h-4 w-4" />
                 <span className="text-sm">Granted</span>
               </div>
-            ) : permissionStatus.denied ? (
+            ) : Notification.permission === 'denied' ? (
               <div className="flex items-center gap-2 text-red-600">
                 <X className="h-4 w-4" />
                 <span className="text-sm">Denied - Enable in browser settings</span>
@@ -141,58 +232,77 @@ export function NotificationSettings() {
         </div>
 
         {/* Enable/Disable Notifications */}
-        {permissionStatus.granted && (
+        {permissionGranted && (
           <>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Enable Notifications</Label>
+                <Label>Daily Task Notifications</Label>
                 <p className="text-sm text-muted-foreground">
-                  Receive notifications for tasks and reminders
+                  Receive a daily summary of today's tasks plus overdue items
                 </p>
               </div>
               <Button
-                variant={notificationsEnabled ? 'default' : 'outline'}
+                variant={preferences.enabled ? 'default' : 'outline'}
                 size="sm"
-                onClick={handleToggleNotifications}
+                onClick={preferences.enabled ? handleDisableNotifications : handleEnableNotifications}
+                disabled={isSaving}
               >
-                {notificationsEnabled ? 'Enabled' : 'Disabled'}
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Saving...
+                  </>
+                ) : preferences.enabled ? (
+                  'Enabled'
+                ) : (
+                  'Disabled'
+                )}
               </Button>
             </div>
 
-            {notificationsEnabled && (
+            {preferences.enabled && (
               <>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Daily Summary</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Get a daily summary of your tasks
-                    </p>
-                  </div>
-                  <Button
-                    variant={dailySummaryEnabled ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={handleToggleDailySummary}
-                  >
-                    {dailySummaryEnabled ? 'Enabled' : 'Disabled'}
-                  </Button>
+                {/* Notification Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="notification-time">Notification Time</Label>
+                  <Input
+                    id="notification-time"
+                    type="time"
+                    value={preferences.time}
+                    onChange={handleTimeChange}
+                    className="w-40"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    You'll receive your daily task summary at this time (local time)
+                  </p>
                 </div>
 
-                {dailySummaryEnabled && (
-                  <div className="space-y-2">
-                    <Label htmlFor="summary-time">Summary Time</Label>
-                    <Input
-                      id="summary-time"
-                      type="time"
-                      value={dailySummaryTime}
-                      onChange={handleTimeChange}
-                      className="w-40"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      You'll receive a daily summary at this time
-                    </p>
+                {/* Days of Week */}
+                <div className="space-y-3">
+                  <Label>Notify on these days</Label>
+                  <div className="flex gap-2">
+                    {DAYS.map((day) => (
+                      <div key={day.value} className="flex flex-col items-center gap-1">
+                        <Checkbox
+                          id={`day-${day.value}`}
+                          checked={preferences.days.includes(day.value)}
+                          onCheckedChange={() => handleDayToggle(day.value)}
+                        />
+                        <Label
+                          htmlFor={`day-${day.value}`}
+                          className="text-xs cursor-pointer"
+                        >
+                          {day.label}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                )}
+                  <p className="text-xs text-muted-foreground">
+                    Select which days you want to receive notifications
+                  </p>
+                </div>
 
+                {/* Test Notification */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -205,6 +315,20 @@ export function NotificationSettings() {
             )}
           </>
         )}
+
+        {/* Information Box */}
+        <div className="rounded-lg border bg-muted/50 p-4">
+          <h4 className="font-medium text-sm mb-2">Notification Format</h4>
+          <p className="text-xs text-muted-foreground mb-2">
+            Your daily notification will show:
+          </p>
+          <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+            <li>Today's scheduled tasks organized by Morning/Afternoon/Evening</li>
+            <li>Overdue tasks from previous days</li>
+            <li>One line per task for easy reading</li>
+            <li>Clicking opens the app to your scheduled tasks view</li>
+          </ul>
+        </div>
       </CardContent>
     </Card>
   )
