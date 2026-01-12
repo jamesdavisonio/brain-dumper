@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import { TaskCard } from './TaskCard'
-import { Check, Archive, Pencil } from 'lucide-react'
+import { Check, Archive, Pencil, ChevronUp, ChevronDown } from 'lucide-react'
 import { useTasks } from '@/context/TaskContext'
 import type { Task } from '@/types'
 import { cn } from '@/lib/utils'
+import { addDays } from 'date-fns'
 
 interface SwipeableTaskCardProps {
   task: Task
@@ -52,6 +53,48 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
       onEditClick()
     } else if (cardRef.current) {
       cardRef.current.click()
+    }
+  }
+
+  // Move task up in time-of-day (afternoon -> morning, evening -> afternoon, next day morning -> previous day evening)
+  const handleMoveUp = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!task.scheduledDate) return
+
+    const currentTime = task.scheduledTime?.toLowerCase()
+
+    if (currentTime === 'afternoon') {
+      updateTask(task.id, { scheduledTime: 'morning' })
+    } else if (currentTime === 'evening') {
+      updateTask(task.id, { scheduledTime: 'afternoon' })
+    } else if (currentTime === 'morning') {
+      // Move to previous day evening
+      const prevDay = addDays(task.scheduledDate, -1)
+      updateTask(task.id, { scheduledDate: prevDay, scheduledTime: 'evening' })
+    } else {
+      // No time specified - set to evening
+      updateTask(task.id, { scheduledTime: 'evening' })
+    }
+  }
+
+  // Move task down in time-of-day (morning -> afternoon, afternoon -> evening, evening -> next day morning)
+  const handleMoveDown = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!task.scheduledDate) return
+
+    const currentTime = task.scheduledTime?.toLowerCase()
+
+    if (currentTime === 'morning') {
+      updateTask(task.id, { scheduledTime: 'afternoon' })
+    } else if (currentTime === 'afternoon') {
+      updateTask(task.id, { scheduledTime: 'evening' })
+    } else if (currentTime === 'evening') {
+      // Move to next day morning
+      const nextDay = addDays(task.scheduledDate, 1)
+      updateTask(task.id, { scheduledDate: nextDay, scheduledTime: 'morning' })
+    } else {
+      // No time specified - set to morning
+      updateTask(task.id, { scheduledTime: 'morning' })
     }
   }
 
@@ -154,8 +197,28 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
           transform: `translateX(${swipeOffset}px)`,
         }}
       >
-        <div ref={cardRef}>
+        <div ref={cardRef} className="relative">
           <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} />
+
+          {/* Time navigation arrows - only in timeline mode */}
+          {inTimeline && task.scheduledDate && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 z-20">
+              <button
+                onClick={handleMoveUp}
+                className="p-1 rounded bg-primary/10 hover:bg-primary/20 active:bg-primary/30 transition-colors"
+                aria-label="Move to earlier time slot"
+              >
+                <ChevronUp className="h-4 w-4 text-primary" />
+              </button>
+              <button
+                onClick={handleMoveDown}
+                className="p-1 rounded bg-primary/10 hover:bg-primary/20 active:bg-primary/30 transition-colors"
+                aria-label="Move to later time slot"
+              >
+                <ChevronDown className="h-4 w-4 text-primary" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

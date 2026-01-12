@@ -17,15 +17,15 @@ export function InputScreen() {
   const [showVoiceGuide, setShowVoiceGuide] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Check for reprocess content from history
+  // Check for reprocess content from history and autofocus
   useEffect(() => {
     const reprocessContent = sessionStorage.getItem('reprocessContent')
     if (reprocessContent) {
       setInput(reprocessContent)
       sessionStorage.removeItem('reprocessContent')
-      // Focus textarea after short delay
-      setTimeout(() => textareaRef.current?.focus(), 100)
     }
+    // Always focus textarea after short delay (whether reprocessing or just navigating)
+    setTimeout(() => textareaRef.current?.focus(), 100)
   }, [])
 
   // Keyboard shortcut: Ctrl/Cmd + Enter to process

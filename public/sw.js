@@ -10,7 +10,10 @@ const urlsToCache = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+      .then((cache) => cache.addAll(urlsToCache).catch(() => {
+        // Ignore cache errors during development
+        console.log('Cache initialization skipped (likely in dev mode)')
+      }))
       .then(() => self.skipWaiting())
   )
 })
@@ -28,10 +31,14 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// Fetch event - network first, fall back to cache
+// Fetch event - network first, fall back to cache for navigation requests only
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .catch(() => caches.match(event.request))
-  )
+  // Only handle navigation requests and same-origin requests
+  if (event.request.mode === 'navigate' || (event.request.url.startsWith(self.location.origin))) {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match(event.request))
+        .then(response => response || fetch(event.request))
+    )
+  }
 })
