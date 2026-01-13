@@ -43,20 +43,33 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
   return await Notification.requestPermission()
 }
 
-export function sendNotification(title: string, options?: NotificationOptions): void {
+export async function sendNotification(title: string, options?: NotificationOptions): Promise<void> {
   if (Notification.permission !== 'granted') {
     console.warn('Notification permission not granted')
     return
   }
 
   try {
+    // Use Service Worker notification API (works on both desktop and mobile)
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready
+      await registration.showNotification(title, {
+        icon: '/icon-192x192.png',
+        badge: '/favicon-32x32.png',
+        ...options,
+      })
+      console.log('Notification sent via Service Worker:', title)
+      return
+    }
+
+    // Fallback to direct Notification API (desktop only)
     const notification = new Notification(title, {
       icon: '/icon-192x192.png',
       badge: '/favicon-32x32.png',
       ...options,
     })
 
-    console.log('Notification sent:', title)
+    console.log('Notification sent via Notification API:', title)
 
     // Auto-close after 5 seconds
     setTimeout(() => {

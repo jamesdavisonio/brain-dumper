@@ -48,7 +48,7 @@ export function Header() {
       <div className="container flex h-14 items-center">
         <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
           <img
-            src={theme === 'dark' ? '/logo-full-transparent-white-text.svg' : '/logo-full-transparent-dark-text.svg'}
+            src={theme === 'dark' ? '/logo-full-transparent-white-text.svg?v=2' : '/logo-full-transparent-dark-text.svg?v=2'}
             alt="Brain Dumper"
             className="h-8"
           />
