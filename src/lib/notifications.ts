@@ -50,11 +50,18 @@ export function sendNotification(title: string, options?: NotificationOptions): 
   }
 
   try {
-    new Notification(title, {
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+    const notification = new Notification(title, {
+      icon: '/icon-192x192.png',
+      badge: '/favicon-32x32.png',
       ...options,
     })
+
+    console.log('Notification sent:', title)
+
+    // Auto-close after 5 seconds
+    setTimeout(() => {
+      notification.close()
+    }, 5000)
   } catch (error) {
     console.error('Failed to send notification:', error)
   }
