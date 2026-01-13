@@ -173,10 +173,44 @@ export function NotificationSettings() {
     }
   }
 
-  const handleTestNotification = () => {
-    sendNotification('Test Notification', {
-      body: 'This is what your daily task notifications will look like.',
-    })
+  const handleTestNotification = async () => {
+    try {
+      console.log('Test notification requested')
+      console.log('Notification permission:', Notification.permission)
+
+      if (Notification.permission !== 'granted') {
+        toast({
+          title: 'Permission not granted',
+          description: 'Please grant notification permission first.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Check if service worker is registered
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        console.log('Service worker registrations:', registrations.length)
+      }
+
+      sendNotification('🧠 Brain Dumper Test', {
+        body: 'If you see this, notifications are working! Daily summaries will look similar.',
+        tag: 'test-notification',
+        requireInteraction: false,
+      })
+
+      toast({
+        title: 'Test notification sent',
+        description: 'Check if you received the notification!',
+      })
+    } catch (error) {
+      console.error('Test notification error:', error)
+      toast({
+        title: 'Notification failed',
+        description: 'Check console for details.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const notSupported = !('Notification' in window)
@@ -318,9 +352,15 @@ export function NotificationSettings() {
 
         {/* Information Box */}
         <div className="rounded-lg border bg-muted/50 p-4">
-          <h4 className="font-medium text-sm mb-2">Notification Format</h4>
+          <h4 className="font-medium text-sm mb-2">How Notifications Work</h4>
+          <p className="text-xs text-muted-foreground mb-3">
+            <strong>Test Notification:</strong> Tests browser notifications (works immediately)
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            <strong>Daily Notifications:</strong> Require Cloud Function deployment (see NOTIFICATIONS_CLOUD_FUNCTION_SETUP.md)
+          </p>
           <p className="text-xs text-muted-foreground mb-2">
-            Your daily notification will show:
+            Daily notifications will show:
           </p>
           <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
             <li>Today's scheduled tasks organized by Morning/Afternoon/Evening</li>
