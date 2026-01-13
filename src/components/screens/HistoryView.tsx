@@ -4,8 +4,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Brain, Calendar, ListTodo, Search, Trash2, ArrowLeft, RefreshCw } from 'lucide-react'
+import { Calendar, ListTodo, Search, Trash2, ArrowLeft, RefreshCw, History } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { useAuth } from '@/context/AuthContext'
+import {
+  subscribeToDumpHistory,
+  deleteDumpHistoryEntry,
+  clearDumpHistory,
+} from '@/services/firestore'
+import type { DumpHistoryEntry } from '@/types'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,27 +24,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-interface BrainDumpHistoryEntry {
-  id: string
-  content: string
-  createdAt: string
-  taskCount: number
-}
-
 export function HistoryView() {
   const navigate = useNavigate()
-  const [history, setHistory] = useState<BrainDumpHistoryEntry[]>([])
-  const [selectedEntry, setSelectedEntry] = useState<BrainDumpHistoryEntry | null>(null)
+  const { user } = useAuth()
+  const [history, setHistory] = useState<DumpHistoryEntry[]>([])
+  const [selectedEntry, setSelectedEntry] = useState<DumpHistoryEntry | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [showClearAllDialog, setShowClearAllDialog] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem('brainDumpHistory')
-    if (stored) {
-      setHistory(JSON.parse(stored))
-    }
-  }, [])
+    if (!user) return
+
+    const unsubscribe = subscribeToDumpHistory(user.uid, setHistory)
+    return unsubscribe
+  }, [user])
 
   const filteredHistory = useMemo(() => {
     if (!searchQuery.trim()) return history
@@ -47,21 +48,27 @@ export function HistoryView() {
     )
   }, [history, searchQuery])
 
-  const handleDelete = (id: string) => {
-    const updated = history.filter((entry) => entry.id !== id)
-    setHistory(updated)
-    localStorage.setItem('brainDumpHistory', JSON.stringify(updated))
-    if (selectedEntry?.id === id) {
-      setSelectedEntry(null)
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDumpHistoryEntry(id)
+      if (selectedEntry?.id === id) {
+        setSelectedEntry(null)
+      }
+      setDeleteId(null)
+    } catch (error) {
+      console.error('Failed to delete dump history entry:', error)
     }
-    setDeleteId(null)
   }
 
-  const handleClearAll = () => {
-    setHistory([])
-    localStorage.removeItem('brainDumpHistory')
-    setSelectedEntry(null)
-    setShowClearAllDialog(false)
+  const handleClearAll = async () => {
+    if (!user) return
+    try {
+      await clearDumpHistory(user.uid)
+      setSelectedEntry(null)
+      setShowClearAllDialog(false)
+    } catch (error) {
+      console.error('Failed to clear dump history:', error)
+    }
   }
 
   const handleReprocess = (content: string) => {
@@ -78,8 +85,8 @@ export function HistoryView() {
         </Button>
         <div>
           <h1 className="text-2xl font-semibold mb-1 flex items-center gap-2">
-            <Brain className="h-6 w-6 text-primary" />
-            Brain Dumper History
+            <History className="h-6 w-6 text-primary" />
+            Dump History
           </h1>
           <p className="text-sm text-muted-foreground">
             View and reprocess your previous brain dumps
@@ -90,10 +97,10 @@ export function HistoryView() {
       {history.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <Brain className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
+            <History className="h-12 w-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
             <p className="text-muted-foreground">No brain dumps yet.</p>
             <p className="text-sm mt-1 text-muted-foreground">
-              Your brain dump history will appear here after you process tasks.
+              Your dump history will appear here after you process tasks.
             </p>
             <Button
               className="mt-4"
@@ -119,7 +126,7 @@ export function HistoryView() {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  {formatDate(new Date(selectedEntry.createdAt))}
+                  {formatDate(selectedEntry.createdAt)}
                 </span>
                 <span className="flex items-center gap-1">
                   <ListTodo className="h-3 w-3" />
@@ -184,7 +191,7 @@ export function HistoryView() {
                           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {formatDate(new Date(entry.createdAt))}
+                              {formatDate(entry.createdAt)}
                             </span>
                             <span className="flex items-center gap-1">
                               <ListTodo className="h-3 w-3" />

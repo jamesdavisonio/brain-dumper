@@ -19,15 +19,20 @@ export const googleProvider = new GoogleAuthProvider()
 
 // Initialize messaging (only if supported)
 let messaging: ReturnType<typeof getMessaging> | null = null
-isSupported().then((supported) => {
-  if (supported) {
-    messaging = getMessaging(app)
-  }
-}).catch(() => {
-  // Messaging not supported
-})
+
+const messagingPromise = isSupported()
+  .then((supported) => {
+    if (supported) {
+      messaging = getMessaging(app)
+    }
+    return messaging
+  })
+  .catch(() => {
+    return null
+  })
 
 export const getMessagingInstance = () => messaging
+export const waitForMessaging = () => messagingPromise
 
 googleProvider.setCustomParameters({
   prompt: 'select_account',

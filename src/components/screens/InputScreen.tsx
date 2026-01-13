@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTasks } from '@/context/TaskContext'
+import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { parseBrainDump } from '@/services/gemini'
+import { createDumpHistoryEntry } from '@/services/firestore'
 import { Loader2, Sparkles, History, Mic } from 'lucide-react'
 import { VoiceInputGuide } from '@/components/screens/VoiceInputGuide'
 
 export function InputScreen() {
   const navigate = useNavigate()
   const { projects } = useTasks()
+  const { user } = useAuth()
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -64,16 +67,19 @@ export function InputScreen() {
       )
       sessionStorage.setItem('originalInput', input)
 
-      // Save to brain dump history immediately after processing
-      const history = JSON.parse(localStorage.getItem('brainDumpHistory') || '[]')
-      history.unshift({
-        id: Date.now().toString(),
-        content: input,
-        createdAt: new Date().toISOString(),
-        taskCount: result.tasks.length,
-      })
-      // Keep only last 50 entries
-      localStorage.setItem('brainDumpHistory', JSON.stringify(history.slice(0, 50)))
+      // Save to dump history in Firestore
+      if (user) {
+        try {
+          await createDumpHistoryEntry({
+            content: input,
+            taskCount: result.tasks.length,
+            userId: user.uid,
+          })
+        } catch (historyError) {
+          console.error('Failed to save dump history:', historyError)
+          // Don't block navigation for history save failure
+        }
+      }
 
       navigate('/approve')
     } catch (err) {

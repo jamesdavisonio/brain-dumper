@@ -7,15 +7,17 @@ import {
   query,
   where,
   orderBy,
+  limit,
   onSnapshot,
   Timestamp,
   writeBatch,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import type { Task, Project } from '@/types'
+import type { Task, Project, DumpHistoryEntry } from '@/types'
 
 const TASKS_COLLECTION = 'tasks'
 const PROJECTS_COLLECTION = 'projects'
+const DUMP_HISTORY_COLLECTION = 'dumpHistory'
 
 // Convert Firestore timestamp to Date
 function toDate(timestamp: Timestamp | Date | undefined): Date | undefined {
@@ -196,4 +198,61 @@ export async function updateProject(
 
 export async function deleteProject(id: string): Promise<void> {
   await deleteDoc(doc(db, PROJECTS_COLLECTION, id))
+}
+
+// Dump History Operations
+export function subscribeToDumpHistory(
+  userId: string,
+  callback: (entries: DumpHistoryEntry[]) => void
+): () => void {
+  const q = query(
+    collection(db, DUMP_HISTORY_COLLECTION),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc'),
+    limit(50)
+  )
+
+  return onSnapshot(q, (snapshot) => {
+    const entries: DumpHistoryEntry[] = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        content: data.content,
+        taskCount: data.taskCount,
+        userId: data.userId,
+        createdAt: toDate(data.createdAt) || new Date(),
+      }
+    })
+    callback(entries)
+  })
+}
+
+export async function createDumpHistoryEntry(
+  entry: Omit<DumpHistoryEntry, 'id' | 'createdAt'>
+): Promise<string> {
+  const docRef = await addDoc(collection(db, DUMP_HISTORY_COLLECTION), {
+    ...entry,
+    createdAt: Timestamp.now(),
+  })
+  return docRef.id
+}
+
+export async function deleteDumpHistoryEntry(id: string): Promise<void> {
+  await deleteDoc(doc(db, DUMP_HISTORY_COLLECTION, id))
+}
+
+export async function clearDumpHistory(userId: string): Promise<void> {
+  const q = query(
+    collection(db, DUMP_HISTORY_COLLECTION),
+    where('userId', '==', userId)
+  )
+
+  const snapshot = await import('firebase/firestore').then(m => m.getDocs(q))
+  const batch = writeBatch(db)
+
+  snapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref)
+  })
+
+  await batch.commit()
 }

@@ -1,6 +1,6 @@
 import { getToken, onMessage } from 'firebase/messaging'
 import { doc, setDoc } from 'firebase/firestore'
-import { db, getMessagingInstance } from '@/lib/firebase'
+import { db, waitForMessaging } from '@/lib/firebase'
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
 
@@ -46,15 +46,17 @@ export type FCMTokenResult =
  */
 export async function getFCMToken(userId: string): Promise<FCMTokenResult> {
   try {
-    const messaging = getMessagingInstance()
-    if (!messaging) {
-      console.warn('Firebase Messaging not supported')
-      return { success: false, error: 'messaging_not_supported' }
-    }
-
+    // Check VAPID key first (before waiting for messaging)
     if (!VAPID_KEY) {
       console.error('VAPID key not configured')
       return { success: false, error: 'vapid_key_not_configured' }
+    }
+
+    // Wait for messaging to be initialized
+    const messaging = await waitForMessaging()
+    if (!messaging) {
+      console.warn('Firebase Messaging not supported')
+      return { success: false, error: 'messaging_not_supported' }
     }
 
     const hasPermission = await requestNotificationPermission()
@@ -148,8 +150,8 @@ export function cacheNotificationPreferences(preferences: NotificationPreference
 /**
  * Initialize foreground message handling
  */
-export function initializeForegroundMessaging(): void {
-  const messaging = getMessagingInstance()
+export async function initializeForegroundMessaging(): Promise<void> {
+  const messaging = await waitForMessaging()
   if (!messaging) return
 
   onMessage(messaging, (payload) => {

@@ -62,6 +62,14 @@ export interface BrainDumpResult {
   suggestedProjects: string[]
 }
 
+export interface DumpHistoryEntry {
+  id: string
+  content: string
+  taskCount: number
+  userId: string
+  createdAt: Date
+}
+
 export interface FilterState {
   project?: string
   priority?: Priority

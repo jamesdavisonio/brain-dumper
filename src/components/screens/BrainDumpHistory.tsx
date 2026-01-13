@@ -10,15 +10,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Brain, Calendar, ListTodo, Search, Trash2, X, RefreshCw } from 'lucide-react'
+import { Calendar, ListTodo, Search, Trash2, X, RefreshCw, History } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
-
-interface BrainDumpHistoryEntry {
-  id: string
-  content: string
-  createdAt: string
-  taskCount: number
-}
+import { useAuth } from '@/context/AuthContext'
+import {
+  subscribeToDumpHistory,
+  deleteDumpHistoryEntry,
+  clearDumpHistory,
+} from '@/services/firestore'
+import type { DumpHistoryEntry } from '@/types'
 
 interface BrainDumpHistoryDialogProps {
   open: boolean
@@ -31,16 +31,20 @@ export function BrainDumpHistoryDialog({
   onOpenChange,
   onReprocess,
 }: BrainDumpHistoryDialogProps) {
-  const [history, setHistory] = useState<BrainDumpHistoryEntry[]>([])
-  const [selectedEntry, setSelectedEntry] = useState<BrainDumpHistoryEntry | null>(null)
+  const { user } = useAuth()
+  const [history, setHistory] = useState<DumpHistoryEntry[]>([])
+  const [selectedEntry, setSelectedEntry] = useState<DumpHistoryEntry | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
+    if (!user || !open) return
+
+    const unsubscribe = subscribeToDumpHistory(user.uid, setHistory)
+    return unsubscribe
+  }, [user, open])
+
+  useEffect(() => {
     if (open) {
-      const stored = localStorage.getItem('brainDumpHistory')
-      if (stored) {
-        setHistory(JSON.parse(stored))
-      }
       setSearchQuery('')
     }
   }, [open])
@@ -53,19 +57,25 @@ export function BrainDumpHistoryDialog({
     )
   }, [history, searchQuery])
 
-  const handleDelete = (id: string) => {
-    const updated = history.filter((entry) => entry.id !== id)
-    setHistory(updated)
-    localStorage.setItem('brainDumpHistory', JSON.stringify(updated))
-    if (selectedEntry?.id === id) {
-      setSelectedEntry(null)
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDumpHistoryEntry(id)
+      if (selectedEntry?.id === id) {
+        setSelectedEntry(null)
+      }
+    } catch (error) {
+      console.error('Failed to delete dump history entry:', error)
     }
   }
 
-  const handleClearAll = () => {
-    setHistory([])
-    localStorage.removeItem('brainDumpHistory')
-    setSelectedEntry(null)
+  const handleClearAll = async () => {
+    if (!user) return
+    try {
+      await clearDumpHistory(user.uid)
+      setSelectedEntry(null)
+    } catch (error) {
+      console.error('Failed to clear dump history:', error)
+    }
   }
 
   const handleReprocess = (content: string) => {
@@ -81,10 +91,7 @@ export function BrainDumpHistoryDialog({
       <Dialog open={open && !selectedEntry} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5" />
-              Brain Dumper History
-            </DialogTitle>
+            <DialogTitle>Dump History</DialogTitle>
             <DialogDescription>
               View your previous brain dumps. Click to read the full content.
             </DialogDescription>
@@ -92,10 +99,10 @@ export function BrainDumpHistoryDialog({
 
           {history.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No brain dumps yet.</p>
               <p className="text-sm mt-1">
-                Your brain dump history will appear here after you save tasks.
+                Your dump history will appear here after you save tasks.
               </p>
             </div>
           ) : (
@@ -134,7 +141,7 @@ export function BrainDumpHistoryDialog({
                             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {formatDate(new Date(entry.createdAt))}
+                                {formatDate(entry.createdAt)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <ListTodo className="h-3 w-3" />
@@ -182,10 +189,7 @@ export function BrainDumpHistoryDialog({
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5" />
-                Brain Dumper
-              </DialogTitle>
+              <DialogTitle>Dump Details</DialogTitle>
               <Button
                 variant="ghost"
                 size="icon"
@@ -198,7 +202,7 @@ export function BrainDumpHistoryDialog({
               <DialogDescription className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  {formatDate(new Date(selectedEntry.createdAt))}
+                  {formatDate(selectedEntry.createdAt)}
                 </span>
                 <span className="flex items-center gap-1">
                   <ListTodo className="h-3 w-3" />
