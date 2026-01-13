@@ -14,6 +14,7 @@ import {
   disableNotifications,
   requestNotificationPermission,
   type NotificationPreferences,
+  type FCMTokenError,
 } from '@/services/notifications'
 import { sendNotification } from '@/lib/notifications'
 import { useToast } from '@/hooks/useToast'
@@ -27,6 +28,31 @@ const DAYS = [
   { value: 5, label: 'Fri' },
   { value: 6, label: 'Sat' },
 ]
+
+function getErrorMessage(error: FCMTokenError): { title: string; description: string } {
+  switch (error) {
+    case 'vapid_key_not_configured':
+      return {
+        title: 'Configuration missing',
+        description: 'VAPID key not configured. Push notifications are unavailable in local development.',
+      }
+    case 'messaging_not_supported':
+      return {
+        title: 'Not supported',
+        description: 'Firebase Messaging is not supported in this browser.',
+      }
+    case 'permission_denied':
+      return {
+        title: 'Permission denied',
+        description: 'Please enable notifications in your browser settings.',
+      }
+    case 'token_error':
+      return {
+        title: 'Failed to enable notifications',
+        description: 'Could not get push notification token. Please try again.',
+      }
+  }
+}
 
 export function NotificationSettings() {
   const { user } = useAuth()
@@ -68,9 +94,9 @@ export function NotificationSettings() {
 
     setIsSaving(true)
     try {
-      const success = await enableNotifications(user.uid)
+      const result = await enableNotifications(user.uid)
 
-      if (success) {
+      if (result.success) {
         const newPrefs = { ...preferences, enabled: true }
         setPreferences(newPrefs)
         cacheNotificationPreferences(newPrefs)
@@ -85,9 +111,10 @@ export function NotificationSettings() {
           body: `You'll receive daily task summaries at ${preferences.time}.`,
         })
       } else {
+        const errorMessage = getErrorMessage(result.error)
         toast({
-          title: 'Failed to enable notifications',
-          description: 'Please check your browser permissions.',
+          title: errorMessage.title,
+          description: errorMessage.description,
           variant: 'destructive',
         })
       }

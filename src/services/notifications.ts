@@ -31,25 +31,35 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return permission === 'granted'
 }
 
+export type FCMTokenError =
+  | 'messaging_not_supported'
+  | 'vapid_key_not_configured'
+  | 'permission_denied'
+  | 'token_error'
+
+export type FCMTokenResult =
+  | { success: true; token: string }
+  | { success: false; error: FCMTokenError }
+
 /**
  * Get the FCM token for this device
  */
-export async function getFCMToken(userId: string): Promise<string | null> {
+export async function getFCMToken(userId: string): Promise<FCMTokenResult> {
   try {
     const messaging = getMessagingInstance()
     if (!messaging) {
       console.warn('Firebase Messaging not supported')
-      return null
+      return { success: false, error: 'messaging_not_supported' }
     }
 
     if (!VAPID_KEY) {
       console.error('VAPID key not configured')
-      return null
+      return { success: false, error: 'vapid_key_not_configured' }
     }
 
     const hasPermission = await requestNotificationPermission()
     if (!hasPermission) {
-      return null
+      return { success: false, error: 'permission_denied' }
     }
 
     const token = await getToken(messaging, { vapidKey: VAPID_KEY })
@@ -57,13 +67,13 @@ export async function getFCMToken(userId: string): Promise<string | null> {
     if (token) {
       // Save token to Firestore
       await saveTokenToFirestore(userId, token)
-      return token
+      return { success: true, token }
     }
 
-    return null
+    return { success: false, error: 'token_error' }
   } catch (error) {
     console.error('Error getting FCM token:', error)
-    return null
+    return { success: false, error: 'token_error' }
   }
 }
 
@@ -167,13 +177,17 @@ export async function disableNotifications(userId: string): Promise<void> {
   await saveNotificationPreferences(userId, preferences)
 }
 
+export type EnableNotificationsResult =
+  | { success: true }
+  | { success: false; error: FCMTokenError }
+
 /**
  * Enable notifications for a user
  */
-export async function enableNotifications(userId: string): Promise<boolean> {
-  const token = await getFCMToken(userId)
-  if (!token) {
-    return false
+export async function enableNotifications(userId: string): Promise<EnableNotificationsResult> {
+  const result = await getFCMToken(userId)
+  if (!result.success) {
+    return { success: false, error: result.error }
   }
 
   const preferences = getNotificationPreferences()
@@ -181,5 +195,5 @@ export async function enableNotifications(userId: string): Promise<boolean> {
   cacheNotificationPreferences(preferences)
   await saveNotificationPreferences(userId, preferences)
 
-  return true
+  return { success: true }
 }
