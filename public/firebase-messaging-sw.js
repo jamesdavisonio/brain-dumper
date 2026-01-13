@@ -1,20 +1,18 @@
 // Firebase Cloud Messaging Service Worker
 // Auto-generated from vite.config.ts - DO NOT EDIT MANUALLY
-// This file is generated at build time with environment variables
 
 // Import Firebase scripts for service worker
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js')
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js')
 
 // Initialize Firebase in the service worker
-// Config is injected at build time from environment variables
 firebase.initializeApp({
-  apiKey: 'PLACEHOLDER_WILL_BE_REPLACED_AT_BUILD',
-  authDomain: 'PLACEHOLDER_WILL_BE_REPLACED_AT_BUILD',
-  projectId: 'PLACEHOLDER_WILL_BE_REPLACED_AT_BUILD',
-  storageBucket: 'PLACEHOLDER_WILL_BE_REPLACED_AT_BUILD',
-  messagingSenderId: 'PLACEHOLDER_WILL_BE_REPLACED_AT_BUILD',
-  appId: 'PLACEHOLDER_WILL_BE_REPLACED_AT_BUILD'
+  apiKey: 'undefined',
+  authDomain: 'undefined',
+  projectId: 'undefined',
+  storageBucket: 'undefined',
+  messagingSenderId: 'undefined',
+  appId: 'undefined'
 })
 
 const messaging = firebase.messaging()

@@ -1,6 +1,23 @@
-<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
   <rect width="180" height="180" fill="#1a1a2e"/>
-  <circle cx="90" cy="90" r="20" fill="#4ECDC4"/>
-  <path d="M90 54 A36 36 0 1 1 54 90" fill="none" stroke="#00B4D8" stroke-width="8" stroke-linecap="round"/>
-  <path d="M90 34 A56 56 0 1 1 34 90" fill="none" stroke="#4A3F82" stroke-width="8" stroke-linecap="round"/>
+  <!-- Brain -->
+  <g transform="translate(45, 14) scale(3.75)" stroke="#4A3F82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+    <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+  </g>
+  <!-- Classic swirl poo -->
+  <path d="M90 98
+           Q77 98 73 109
+           Q68 120 75 130
+           Q66 132 63 144
+           Q59 156 74 165
+           Q65 167 61 179
+           Q61 195 90 195
+           Q119 195 119 179
+           Q115 167 106 165
+           Q121 156 117 144
+           Q114 132 105 130
+           Q112 120 107 109
+           Q103 98 90 98Z"
+        fill="#4ECDC4" stroke="#4A3F82" stroke-width="3.5"/>
 </svg>
