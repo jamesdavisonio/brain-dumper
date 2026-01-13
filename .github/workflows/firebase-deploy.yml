@@ -148,6 +148,6 @@ jobs:
         run: cd functions && npm run build
 
       - name: Deploy Cloud Functions
-        run: firebase deploy --only functions --token "${{ secrets.FIREBASE_TOKEN }}"
+        run: firebase deploy --only functions --force --token "${{ secrets.FIREBASE_TOKEN }}"
         env:
           FIREBASE_PROJECT: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
