@@ -85,20 +85,22 @@ export function AnalyticsView() {
       const completed = tasks.filter(
         (t) =>
           t.completed &&
+          !t.archived &&
           t.updatedAt &&
           isWithinInterval(t.updatedAt, { start: weekStart, end: weekEnd })
       ).length
 
-      const created = tasks.filter(
+      const scheduled = tasks.filter(
         (t) =>
-          t.createdAt &&
-          isWithinInterval(t.createdAt, { start: weekStart, end: weekEnd })
+          t.scheduledDate &&
+          !t.archived &&
+          isWithinInterval(t.scheduledDate, { start: weekStart, end: weekEnd })
       ).length
 
       weeks.push({
         week: format(weekStart, 'MMM d'),
         completed,
-        created,
+        scheduled,
       })
     }
 
@@ -202,7 +204,7 @@ export function AnalyticsView() {
               <TrendingUp className="h-4 w-4" />
               Weekly Activity
             </CardTitle>
-            <CardDescription>Tasks created and completed per week</CardDescription>
+            <CardDescription>Tasks scheduled and completed per week</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -211,14 +213,14 @@ export function AnalyticsView() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium">{week.week}</span>
                     <span className="text-muted-foreground">
-                      {week.created} created / {week.completed} done
+                      {week.scheduled} scheduled / {week.completed} done
                     </span>
                   </div>
                   <div className="flex gap-1 h-4">
                     <div
                       className="bg-blue-500 rounded"
-                      style={{ width: `${Math.min((week.created / 10) * 100, 100)}%` }}
-                      title={`${week.created} created`}
+                      style={{ width: `${Math.min((week.scheduled / 10) * 100, 100)}%` }}
+                      title={`${week.scheduled} scheduled`}
                     />
                     <div
                       className="bg-green-500 rounded"
@@ -230,7 +232,7 @@ export function AnalyticsView() {
               ))}
               <div className="flex gap-4 text-xs text-muted-foreground pt-2">
                 <span className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-blue-500 rounded" /> Created
+                  <div className="w-3 h-3 bg-blue-500 rounded" /> Scheduled
                 </span>
                 <span className="flex items-center gap-1">
                   <div className="w-3 h-3 bg-green-500 rounded" /> Completed

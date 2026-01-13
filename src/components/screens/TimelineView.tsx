@@ -54,11 +54,14 @@ function SortableSwipeableTaskCard({ task, inTimeline = false }: { task: Task; i
 
 export function TimelineView() {
   const { tasks, updateTask, loading } = useTasks()
-  const [weekOffset, setWeekOffset] = useState(0)
+  const [dayOffset, setDayOffset] = useState(0)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
 
   // Disable drag-and-drop on mobile (touch devices)
   const isMobile = 'ontouchstart' in window
+
+  // Desktop shows 3 days, mobile shows 1 day at a time
+  const daysToShow = isMobile ? 1 : 3
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -68,16 +71,16 @@ export function TimelineView() {
     })
   )
 
-  // Start from today (or today + offset weeks)
+  // Start from today (or today + offset days)
   const startDate = useMemo(() => {
     const today = startOfDay(new Date())
-    return addDays(today, weekOffset * 7)
-  }, [weekOffset])
+    return addDays(today, dayOffset * daysToShow)
+  }, [dayOffset, daysToShow])
 
-  // Show 7 days starting from the start date
+  // Show days starting from the start date
   const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => addDays(startDate, i))
-  }, [startDate])
+    return Array.from({ length: daysToShow }, (_, i) => addDays(startDate, i))
+  }, [startDate, daysToShow])
 
   const unscheduledTasks = useMemo(() => {
     return tasks.filter((t) => !t.archived && !t.completed && !t.scheduledDate)
@@ -135,16 +138,18 @@ export function TimelineView() {
   // Format the date range for the header
   const getHeaderText = () => {
     const today = startOfDay(new Date())
-    if (weekOffset === 0) {
-      return 'This Week'
-    } else if (weekOffset === 1) {
-      return 'Next Week'
-    } else if (weekOffset === -1) {
-      return 'Last Week'
+    if (dayOffset === 0) {
+      if (daysToShow === 1) {
+        return 'Today'
+      }
+      return 'Next 3 Days'
     }
-    const endDate = addDays(startDate, 6)
+    const endDate = addDays(startDate, daysToShow - 1)
+    if (daysToShow === 1) {
+      return format(startDate, 'EEEE, MMM d')
+    }
     if (isSameDay(startDate, today)) {
-      return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`
+      return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d')}`
     }
     return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`
   }
@@ -153,8 +158,8 @@ export function TimelineView() {
     return (
       <div className="space-y-4">
         <Skeleton className="h-12 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-          {[...Array(7)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="h-64" />
           ))}
         </div>
@@ -170,17 +175,17 @@ export function TimelineView() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setWeekOffset((prev) => prev - 1)}
+            onClick={() => setDayOffset((prev) => prev - 1)}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={() => setWeekOffset(0)}>
+          <Button variant="outline" onClick={() => setDayOffset(0)}>
             Today
           </Button>
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setWeekOffset((prev) => prev + 1)}
+            onClick={() => setDayOffset((prev) => prev + 1)}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -193,7 +198,7 @@ export function TimelineView() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Unscheduled column */}
           <Card className="lg:col-span-1">
             <CardHeader className="pb-3">

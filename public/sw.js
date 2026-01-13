@@ -1,4 +1,4 @@
-const CACHE_NAME = 'brain-dump-v2'
+const CACHE_NAME = 'brain-dump-v3'
 const urlsToCache = [
   '/',
   '/index.html',

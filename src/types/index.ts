@@ -118,7 +118,7 @@ export interface TaskStats {
 export interface WeeklyStats {
   week: string
   completed: number
-  created: number
+  scheduled: number
 }
 
 // Categories for auto-categorization
