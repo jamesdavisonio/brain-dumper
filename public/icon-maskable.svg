@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <rect width="512" height="512" fill="#1a1a2e"/>
   <!-- Brain - scaled down for safe zone -->
-  <g transform="translate(153, 70) scale(8.5)" stroke="#4A3F82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <g transform="translate(153, 60) scale(8.5)" stroke="#4A3F82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
     <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
   </g>
-  <!-- Classic swirl poo - scaled for safe zone -->
-  <path d="M256 255 
-           Q228 255 220 278 
-           Q207 301 222 325
-           Q202 329 194 356
-           Q186 383 218 403
-           Q198 407 190 435
-           Q190 470 256 470
-           Q322 470 322 435
-           Q314 407 294 403
-           Q326 383 318 356
-           Q310 329 290 325
-           Q305 301 292 278
-           Q284 255 256 255Z"
+  <!-- Classic swirl poo - scaled for safe zone, closer to brain -->
+  <path d="M256 225 
+           Q228 225 220 248 
+           Q207 271 222 295
+           Q202 299 194 326
+           Q186 353 218 373
+           Q198 377 190 405
+           Q190 440 256 440
+           Q322 440 322 405
+           Q314 377 294 373
+           Q326 353 318 326
+           Q310 299 290 295
+           Q305 271 292 248
+           Q284 225 256 225Z"
         fill="#4ECDC4" stroke="#4A3F82" stroke-width="8"/>
 </svg>

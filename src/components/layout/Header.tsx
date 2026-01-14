@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Moon, Sun, LogOut, User, Download, Share, Settings } from 'lucide-react'
+import { Moon, Sun, LogOut, User, Download, Share, Settings, BarChart3, Archive, History } from 'lucide-react'
 import { useTheme } from '@/hooks/useTheme'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 
@@ -48,7 +48,7 @@ export function Header() {
       <div className="container flex h-14 items-center">
         <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
           <img
-            src={theme === 'dark' ? '/logo-full-transparent-white-text.svg?v=2' : '/logo-full-transparent-dark-text.svg?v=2'}
+            src={theme === 'dark' ? '/logo-full-transparent-white-text.svg?v=3' : '/logo-full-transparent-dark-text.svg?v=3'}
             alt="Brain Dumper"
             className="h-8"
           />
@@ -108,9 +108,28 @@ export function Header() {
                   </>
                 )}
                 <DropdownMenuItem asChild>
+                  <Link to="/analytics" className="cursor-pointer">
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Stats
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/archive" className="cursor-pointer">
+                    <Archive className="mr-2 h-4 w-4" />
+                    Archive
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
                   <Link to="/settings" className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/changelog" className="cursor-pointer">
+                    <History className="mr-2 h-4 w-4" />
+                    Changelog
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

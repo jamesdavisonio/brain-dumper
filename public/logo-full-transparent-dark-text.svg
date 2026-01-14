@@ -1,24 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="100" viewBox="0 0 400 100">
   <!-- Brain -->
-  <g transform="translate(12, 3) scale(2.4)" stroke="#4A3F82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <g transform="translate(10, 5) scale(2)" stroke="#4A3F82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
     <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
   </g>
-  <!-- Classic swirl poo -->
-  <path d="M41 55 
-           Q33 55 30 63 
-           Q27 71 32 77
-           Q26 78 24 86
-           Q22 94 32 99
-           Q28 100 26 107
-           Q26 118 41 118
-           Q56 118 56 107
-           Q54 100 50 99
-           Q60 94 58 86
-           Q56 78 50 77
-           Q55 71 52 63
-           Q49 55 41 55Z"
-        fill="#4ECDC4" stroke="#4A3F82" stroke-width="2.5" transform="translate(0, -22) scale(0.85)"/>
+  <!-- Classic swirl poo - closer to brain -->
+  <path d="M34 46 
+           Q28 46 26 52 
+           Q24 58 28 63
+           Q24 64 22 70
+           Q20 76 27 80
+           Q24 81 22 86
+           Q22 93 34 93
+           Q46 93 46 86
+           Q44 81 41 80
+           Q48 76 46 70
+           Q44 64 40 63
+           Q44 58 42 52
+           Q40 46 34 46Z"
+        fill="#4ECDC4" stroke="#4A3F82" stroke-width="2"/>
   <!-- Text -->
-  <text x="85" y="58" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="600" fill="#4A3F82">Brain Dumper</text>
+  <text x="70" y="58" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="600" fill="#4A3F82">Brain Dumper</text>
 </svg>
