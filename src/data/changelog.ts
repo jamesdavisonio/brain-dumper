@@ -12,12 +12,10 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '1.2.0',
     date: '2025-01-14',
-    title: 'Today View & Navigation Update',
+    title: 'Navigation Update & Changelog',
     changes: [
-      { type: 'feature', description: 'Added Today view for focused daily planning' },
       { type: 'feature', description: 'Added Changelog to track app updates' },
       { type: 'improvement', description: 'Moved Stats and Archive to account menu for cleaner navigation' },
-      { type: 'improvement', description: 'Clicking notifications now opens Today view' },
       { type: 'improvement', description: 'Updated app logos' },
     ],
   },

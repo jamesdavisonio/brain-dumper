@@ -29,7 +29,7 @@ messaging.onBackgroundMessage((payload) => {
     tag: 'daily-tasks',
     requireInteraction: false,
     data: {
-      url: payload.data?.url || '/today',
+      url: payload.data?.url || '/schedule',
     },
   }
 
@@ -40,7 +40,7 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const urlToOpen = event.notification.data?.url || '/today'
+  const urlToOpen = event.notification.data?.url || '/schedule'
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

@@ -8,7 +8,6 @@ import { InputScreen } from '@/components/screens/InputScreen'
 import { ApprovalScreen } from '@/components/screens/ApprovalScreen'
 import { ListView } from '@/components/screens/ListView'
 import { TimelineView } from '@/components/screens/TimelineView'
-import { TodayView } from '@/components/screens/TodayView'
 import { ArchiveView } from '@/components/screens/ArchiveView'
 import { AnalyticsView } from '@/components/screens/AnalyticsView'
 import { HistoryView } from '@/components/screens/HistoryView'
@@ -26,7 +25,6 @@ function AppRoutes() {
         <Route path="/" element={<InputScreen />} />
         <Route path="/approve" element={<ApprovalScreen />} />
         <Route path="/list" element={<ListView />} />
-        <Route path="/today" element={<TodayView />} />
         <Route path="/timeline" element={<TimelineView />} />
         <Route path="/analytics" element={<AnalyticsView />} />
         <Route path="/archive" element={<ArchiveView />} />

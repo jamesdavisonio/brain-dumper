@@ -165,7 +165,7 @@ async function sendNotificationToUser(
         body,
       },
       data: {
-        url: '/today',
+        url: '/schedule',
         type: 'daily-tasks',
       },
       android: {

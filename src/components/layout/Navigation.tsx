@@ -1,11 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { Plus, List, Calendar, CalendarDays } from 'lucide-react'
+import { Plus, List, Calendar } from 'lucide-react'
 
 const navItems = [
   { path: '/', icon: Plus, label: 'Dump' },
   { path: '/list', icon: List, label: 'Tasks' },
-  { path: '/today', icon: CalendarDays, label: 'Today' },
   { path: '/timeline', icon: Calendar, label: 'Schedule' },
 ]
 
