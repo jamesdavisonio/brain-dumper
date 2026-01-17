@@ -38,6 +38,26 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
       allow write: if isAuthenticated() && request.auth.uid == userId;
+
+      // Private subcollection for sensitive data like OAuth tokens
+      // Only the user can read/write their own private data
+      match /private/{document} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if isAuthenticated() && request.auth.uid == userId;
+      }
+
+      // Calendars subcollection for connected calendar metadata
+      match /calendars/{calendarId} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+
+    // OAuth state tokens (temporary, used during OAuth flow)
+    // These are created and validated by Cloud Functions
+    // Users should not directly access this collection
+    match /oauthStates/{stateId} {
+      allow read, write: if false; // Only accessible by Cloud Functions
     }
 
     // Deny all other access by default

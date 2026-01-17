@@ -28,23 +28,42 @@ import {
   Trash2,
   Archive,
   Flag,
+  RefreshCw,
 } from 'lucide-react'
 import { cn, formatDate, formatTimeEstimate, formatTimeOfDay } from '@/lib/utils'
-import type { Task, Priority } from '@/types'
+import type { Task, Priority, TimeSlot } from '@/types'
 import { EditTaskDialog } from './EditTaskDialog'
 import { ProjectIcon } from '@/components/ui/project-icon'
+import { ScheduleButton } from '@/components/scheduling/ScheduleButton'
+import { ScheduledBadge } from '@/components/scheduling/ScheduledBadge'
+import { ScheduleSuggestionModal } from '@/components/scheduling/ScheduleSuggestionModal'
 
 interface TaskCardProps {
   task: Task
   showProject?: boolean
   inTimeline?: boolean
   projectBorder?: boolean
+  showScheduling?: boolean
+  onSchedule?: (task: Task, slot: TimeSlot) => void
+  onUnschedule?: (task: Task) => void
 }
 
-export function TaskCard({ task, showProject = true, inTimeline = false, projectBorder = false }: TaskCardProps) {
+export function TaskCard({
+  task,
+  showProject = true,
+  inTimeline = false,
+  projectBorder = false,
+  showScheduling = false,
+  onSchedule,
+  onUnschedule,
+}: TaskCardProps) {
   const { updateTask, deleteTask, projects } = useTasks()
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
+
+  // Check if task is scheduled on calendar
+  const isScheduledOnCalendar = !!(task.scheduledStart && task.calendarEventId)
 
   const project = projects.find((p) => p.name === task.project)
 
@@ -63,6 +82,19 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
   const handleDelete = () => {
     deleteTask(task.id)
     setIsDeleteDialogOpen(false)
+  }
+
+  const handleScheduleClick = () => {
+    setIsScheduleModalOpen(true)
+  }
+
+  const handleScheduleSelect = (slot: TimeSlot) => {
+    onSchedule?.(task, slot)
+    setIsScheduleModalOpen(false)
+  }
+
+  const handleUnschedule = () => {
+    onUnschedule?.(task)
   }
 
   // Determine which date to show (prefer scheduledDate for timeline, dueDate otherwise)
@@ -134,7 +166,16 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
 
             <div className={cn('h-2 w-2 rounded-full', priorityColor)} title={`${task.priority} priority`} />
 
-            {displayDate && (
+            {/* Show calendar-scheduled badge if scheduled */}
+            {showScheduling && isScheduledOnCalendar && task.scheduledStart && task.scheduledEnd ? (
+              <ScheduledBadge
+                scheduledStart={task.scheduledStart}
+                scheduledEnd={task.scheduledEnd}
+                syncStatus={task.syncStatus}
+                onClick={handleScheduleClick}
+                compact
+              />
+            ) : displayDate && (
               <span className="flex items-center gap-0.5 text-muted-foreground">
                 <CalendarIcon className="h-3 w-3" />
                 <span>{formatDate(displayDate)}</span>
@@ -144,6 +185,17 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
                   </Badge>
                 )}
               </span>
+            )}
+
+            {/* Show schedule button if scheduling is enabled and not scheduled */}
+            {showScheduling && !isScheduledOnCalendar && !task.completed && (
+              <ScheduleButton
+                task={task}
+                onSchedule={handleScheduleClick}
+                onReschedule={handleScheduleClick}
+                onUnschedule={handleUnschedule}
+                compact
+              />
             )}
           </div>
         </div>
@@ -169,6 +221,21 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
               Low Priority
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {showScheduling && (
+              <>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleScheduleClick() }}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {isScheduledOnCalendar ? 'Reschedule' : 'Schedule'}
+                </DropdownMenuItem>
+                {isScheduledOnCalendar && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleUnschedule() }}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    Remove from Calendar
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleArchive() }}>
               <Archive className="mr-2 h-4 w-4" />
               Archive
@@ -188,6 +255,19 @@ export function TaskCard({ task, showProject = true, inTimeline = false, project
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
       />
+
+      {/* Scheduling modal */}
+      {showScheduling && (
+        <ScheduleSuggestionModal
+          task={task}
+          open={isScheduleModalOpen}
+          onOpenChange={setIsScheduleModalOpen}
+          onSchedule={handleScheduleSelect}
+          suggestions={[]}
+          availability={[]}
+        />
+      )}
+
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

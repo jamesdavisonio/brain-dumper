@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTasks } from '@/context/TaskContext'
+import { useCalendar } from '@/context/CalendarContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -22,12 +23,40 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DateTimePicker, type DateTimeValue } from '@/components/ui/date-time-picker'
-import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag, Edit } from 'lucide-react'
-import type { ParsedTask, Priority, Recurrence } from '@/types'
+import { Check, X, ArrowLeft, Loader2, Plus, Trash2, CalendarIcon, Clock, MessageSquare, Repeat, Tag, Edit, ArrowRight, Sparkles } from 'lucide-react'
+import type { ParsedTask, Priority, Recurrence, TimeSlot, SchedulingSuggestion, Task } from '@/types'
 import { formatDate, formatTimeOfDay } from '@/lib/utils'
 import { CATEGORIES, RECURRENCE_OPTIONS } from '@/lib/constants'
 import { useToast } from '@/hooks/useToast'
 import { EditTaskDialog } from '@/components/tasks/EditTaskDialog'
+import {
+  ScheduleApprovalPanel,
+  ScheduleSummaryCard,
+} from '@/components/scheduling'
+
+type ApprovalState = 'pending' | 'approved' | 'rejected' | 'modified'
+
+interface ScheduledTaskItem {
+  task: Task
+  proposedSlot: TimeSlot | null
+  suggestions: SchedulingSuggestion[]
+  approvalState: ApprovalState
+  error?: string
+}
+
+interface ScheduleProposal {
+  items: ScheduledTaskItem[]
+  generatedAt: Date
+  summary: {
+    totalTasks: number
+    scheduled: number
+    conflicts: number
+    displacements: number
+    unschedulable: number
+  }
+}
+
+type ApprovalStep = 'tasks' | 'schedule'
 
 function formatRecurrence(recurrence?: Recurrence): string {
   if (!recurrence) return 'No repeat'
@@ -53,6 +82,7 @@ function formatRecurrence(recurrence?: Recurrence): string {
 export function ApprovalScreen() {
   const navigate = useNavigate()
   const { bulkAddTasks, addProject, projects } = useTasks()
+  const { isConnected: isCalendarConnected } = useCalendar()
   const { toast } = useToast()
   const [tasks, setTasks] = useState<ParsedTask[]>([])
   const [suggestedProjects, setSuggestedProjects] = useState<string[]>([])
@@ -62,6 +92,10 @@ export function ApprovalScreen() {
   const [feedback, setFeedback] = useState('')
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [currentStep, setCurrentStep] = useState<ApprovalStep>('tasks')
+  const [scheduleProposal, setScheduleProposal] = useState<ScheduleProposal | null>(null)
+  const [scheduleApprovals, setScheduleApprovals] = useState<Map<string, ApprovalState>>(new Map())
+  const [isGeneratingSchedule, setIsGeneratingSchedule] = useState(false)
   const isMobile = window.innerWidth < 768
 
   useEffect(() => {
@@ -126,6 +160,148 @@ export function ApprovalScreen() {
     setShowFeedback(false)
   }
 
+  // Generate schedule proposal from approved tasks
+  const generateScheduleProposal = async () => {
+    setIsGeneratingSchedule(true)
+    try {
+      // Convert ParsedTasks to Task-like objects for scheduling
+      const mockTasks: Task[] = tasks.map((task, index) => ({
+        id: `temp-${index}`,
+        content: task.content,
+        project: task.project,
+        priority: task.priority,
+        dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+        dueTime: task.dueTime,
+        timeEstimate: task.timeEstimate,
+        completed: false,
+        archived: false,
+        userId: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        order: index,
+        recurrence: task.recurrence,
+        category: task.category,
+      }))
+
+      // Generate mock scheduling suggestions
+      // In a real implementation, this would call a scheduling service
+      const items: ScheduledTaskItem[] = mockTasks.map((task) => {
+        const hasTimeEstimate = task.timeEstimate && task.timeEstimate > 0
+        const now = new Date()
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        tomorrow.setHours(9, 0, 0, 0)
+
+        const duration = task.timeEstimate || 60
+
+        if (hasTimeEstimate) {
+          const slotEnd = new Date(tomorrow.getTime() + duration * 60000)
+          return {
+            task,
+            proposedSlot: {
+              start: tomorrow,
+              end: slotEnd,
+              available: true,
+            },
+            suggestions: [
+              {
+                slot: { start: tomorrow, end: slotEnd, available: true },
+                score: 85,
+                reasoning: 'Best available slot based on your preferences',
+                factors: [
+                  { name: 'Time preference', weight: 0.3, value: 90, description: 'Excellent' },
+                  { name: 'Buffer time', weight: 0.2, value: 80, description: 'Available' },
+                ],
+                conflicts: [],
+              },
+            ],
+            approvalState: 'pending' as ApprovalState,
+          }
+        }
+
+        return {
+          task,
+          proposedSlot: null,
+          suggestions: [],
+          approvalState: 'pending' as ApprovalState,
+          error: 'No time estimate provided',
+        }
+      })
+
+      const scheduled = items.filter((i) => i.proposedSlot !== null).length
+
+      setScheduleProposal({
+        items,
+        generatedAt: new Date(),
+        summary: {
+          totalTasks: items.length,
+          scheduled,
+          conflicts: 0,
+          displacements: 0,
+          unschedulable: items.length - scheduled,
+        },
+      })
+
+      // Initialize approvals as pending
+      const initialApprovals = new Map<string, ApprovalState>()
+      items.forEach((item) => {
+        initialApprovals.set(item.task.id, item.proposedSlot ? 'approved' : 'rejected')
+      })
+      setScheduleApprovals(initialApprovals)
+    } catch (error) {
+      console.error('Failed to generate schedule:', error)
+      toast({
+        title: 'Failed to generate schedule',
+        description: 'Could not create scheduling suggestions. Try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsGeneratingSchedule(false)
+    }
+  }
+
+  const handleProceedToSchedule = async () => {
+    if (isCalendarConnected) {
+      await generateScheduleProposal()
+      setCurrentStep('schedule')
+    } else {
+      // If calendar is not connected, skip scheduling step
+      handleSaveAll()
+    }
+  }
+
+  const handleScheduleApprovalChange = (taskId: string, state: ApprovalState) => {
+    setScheduleApprovals((prev) => new Map(prev).set(taskId, state))
+  }
+
+  const handleApproveAllSchedules = () => {
+    if (!scheduleProposal) return
+    const newApprovals = new Map<string, ApprovalState>()
+    scheduleProposal.items.forEach((item) => {
+      if (item.proposedSlot) {
+        newApprovals.set(item.task.id, 'approved')
+      } else {
+        newApprovals.set(item.task.id, 'rejected')
+      }
+    })
+    setScheduleApprovals(newApprovals)
+  }
+
+  const handleRejectAllSchedules = () => {
+    if (!scheduleProposal) return
+    const newApprovals = new Map<string, ApprovalState>()
+    scheduleProposal.items.forEach((item) => {
+      newApprovals.set(item.task.id, 'rejected')
+    })
+    setScheduleApprovals(newApprovals)
+  }
+
+  const handleBackToTasks = () => {
+    setCurrentStep('tasks')
+    setScheduleProposal(null)
+    setScheduleApprovals(new Map())
+  }
+
   const handleSaveAll = async () => {
     if (tasks.length === 0) return
 
@@ -141,36 +317,57 @@ export function ApprovalScreen() {
         await addProject(projectName)
       }
 
-      // Create tasks
-      const tasksToAdd = tasks.map((task, index) => ({
-        content: task.content,
-        project: task.project,
-        priority: task.priority,
-        dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-        dueTime: task.dueTime,
-        scheduledDate: task.dueDate ? new Date(task.dueDate) : undefined, // Also set scheduledDate so tasks appear in timeline
-        scheduledTime: task.scheduledTime,
-        timeEstimate: task.timeEstimate,
-        recurrence: task.recurrence,
-        category: task.category,
-        completed: false,
-        archived: false,
-        order: index,
-      }))
+      // Create tasks with schedule data if available
+      const tasksToAdd = tasks.map((task, index) => {
+        const taskData: Parameters<typeof bulkAddTasks>[0][number] = {
+          content: task.content,
+          project: task.project,
+          priority: task.priority,
+          dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+          dueTime: task.dueTime,
+          scheduledDate: task.dueDate ? new Date(task.dueDate) : undefined,
+          scheduledTime: task.scheduledTime,
+          timeEstimate: task.timeEstimate,
+          recurrence: task.recurrence,
+          category: task.category,
+          completed: false,
+          archived: false,
+          order: index,
+        }
+
+        // Add scheduling data if we have a schedule proposal and approved slot
+        if (scheduleProposal && currentStep === 'schedule') {
+          const scheduleItem = scheduleProposal.items.find(
+            (item) => item.task.id === `temp-${index}`
+          )
+          const approvalState = scheduleApprovals.get(`temp-${index}`)
+
+          if (scheduleItem?.proposedSlot && approvalState === 'approved') {
+            taskData.scheduledStart = scheduleItem.proposedSlot.start
+            taskData.scheduledEnd = scheduleItem.proposedSlot.end
+            taskData.syncStatus = 'pending'
+          }
+        }
+
+        return taskData
+      })
 
       await bulkAddTasks(tasksToAdd)
-
-      // History is now saved immediately after processing in InputScreen
-      // No need to save again here
 
       // Clear session storage
       sessionStorage.removeItem('parsedTasks')
       sessionStorage.removeItem('suggestedProjects')
       sessionStorage.removeItem('originalInput')
 
+      const scheduledCount = scheduleProposal
+        ? Array.from(scheduleApprovals.values()).filter((s) => s === 'approved').length
+        : 0
+
       toast({
         title: 'Tasks saved',
-        description: `${tasksToAdd.length} task${tasksToAdd.length > 1 ? 's' : ''} added successfully.`,
+        description: scheduledCount > 0
+          ? `${tasksToAdd.length} task${tasksToAdd.length > 1 ? 's' : ''} added, ${scheduledCount} scheduled.`
+          : `${tasksToAdd.length} task${tasksToAdd.length > 1 ? 's' : ''} added successfully.`,
       })
 
       navigate('/list')
@@ -377,6 +574,61 @@ export function ApprovalScreen() {
             handleUpdateTask(currentTaskIndex, parsedUpdates)
           }}
         />
+      </div>
+    )
+  }
+
+  // Schedule Step UI
+  if (currentStep === 'schedule' && scheduleProposal) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={handleBackToTasks}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-semibold mb-1">Review Schedule</h1>
+              <p className="text-sm text-muted-foreground">
+                Approve or modify the proposed schedule for your tasks.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Schedule summary */}
+        <ScheduleSummaryCard summary={scheduleProposal.summary} />
+
+        {/* Schedule approval panel */}
+        <ScheduleApprovalPanel
+          proposal={scheduleProposal}
+          approvals={scheduleApprovals}
+          onApprovalChange={handleScheduleApprovalChange}
+          onApproveAll={handleApproveAllSchedules}
+          onRejectAll={handleRejectAllSchedules}
+          isProcessing={isSaving}
+        />
+
+        {/* Action buttons */}
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={handleBackToTasks}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Tasks
+          </Button>
+          <Button onClick={handleSaveAll} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Confirm & Save All
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     )
   }
@@ -626,19 +878,39 @@ export function ApprovalScreen() {
           <X className="mr-2 h-4 w-4" />
           Cancel
         </Button>
-        <Button onClick={handleSaveAll} disabled={isSaving || tasks.length === 0}>
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Check className="mr-2 h-4 w-4" />
-              Save {tasks.length} Tasks
-            </>
-          )}
-        </Button>
+        {isCalendarConnected ? (
+          <Button
+            onClick={handleProceedToSchedule}
+            disabled={isGeneratingSchedule || tasks.length === 0}
+          >
+            {isGeneratingSchedule ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating schedule...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Review Schedule
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button onClick={handleSaveAll} disabled={isSaving || tasks.length === 0}>
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Save {tasks.length} Tasks
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Feedback Dialog */}

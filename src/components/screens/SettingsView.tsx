@@ -1,10 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Settings } from 'lucide-react'
+import { CalendarConnection } from '@/components/settings/CalendarConnection'
 import { NotificationSettings } from '@/components/settings/NotificationSettings'
+import { SchedulingPreferences } from '@/components/settings/SchedulingPreferences'
+import { useCalendar } from '@/context/CalendarContext'
 
 export function SettingsView() {
   const navigate = useNavigate()
+  const { isConnected } = useCalendar()
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -23,6 +27,12 @@ export function SettingsView() {
           </p>
         </div>
       </div>
+
+      {/* Calendar Integration */}
+      <CalendarConnection />
+
+      {/* Scheduling Preferences - only show when calendar is connected */}
+      {isConnected && <SchedulingPreferences />}
 
       {/* Notification Settings */}
       <NotificationSettings />

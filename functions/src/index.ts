@@ -1,7 +1,72 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
+// Initialize Firebase Admin SDK
 admin.initializeApp();
+
+// ============================================================
+// OAuth & Calendar Exports
+// ============================================================
+
+export {
+  calendarOAuthInit,
+  calendarOAuthCallback,
+  refreshCalendarTokens,
+  disconnectCalendar,
+} from './oauth';
+
+export {
+  getCalendarList,
+  updateCalendarSettings,
+  getCalendarEvents,
+  getFreeBusy,
+  getAvailability,
+  syncCalendarEvents,
+} from './calendar';
+
+// ============================================================
+// Scheduling Exports
+// ============================================================
+
+export {
+  // Suggestions
+  getSuggestions,
+  getBatchSuggestions,
+  // Schedule Management Callable Functions
+  proposeSchedule,
+  confirmSchedule,
+  scheduleTask,
+  unscheduleTask,
+  rescheduleTask,
+} from './scheduling';
+
+// ============================================================
+// Sync Triggers (Task <-> Calendar)
+// ============================================================
+
+export {
+  onTaskCreated,
+  onTaskUpdated,
+  onTaskDeleted,
+} from './sync';
+
+// ============================================================
+// Webhooks Exports
+// ============================================================
+
+export {
+  // HTTP handlers
+  calendarWebhook,
+  triggerCalendarSync,
+  setupCalendarWatch,
+  stopCalendarWatch,
+  // Scheduled functions
+  renewCalendarWatches,
+} from './webhooks';
+
+// ============================================================
+// Notification Types & Functions
+// ============================================================
 
 interface NotificationPreferences {
   enabled: boolean;

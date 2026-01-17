@@ -1,3 +1,20 @@
+// Re-export calendar types
+export * from './calendar'
+
+// Re-export scheduling types
+export type {
+  TaskType,
+  SchedulingRule,
+  ProtectedSlot,
+  ScheduledTask,
+  SchedulingSuggestion,
+  ScoringFactor,
+  Conflict,
+  SchedulingContext,
+  UserSchedulingPreferences,
+  TaskSchedulingExtension,
+} from './scheduling'
+
 export type Priority = 'high' | 'medium' | 'low'
 
 export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'custom'
@@ -8,6 +25,9 @@ export interface Recurrence {
   daysOfWeek?: number[] // 0=Sunday, 1=Monday, etc. for weekly
   endDate?: Date
 }
+
+// Import TaskType for use in Task interface
+import type { TaskType } from './scheduling'
 
 export interface Task {
   id: string
@@ -27,6 +47,23 @@ export interface Task {
   order: number
   recurrence?: Recurrence
   category?: string // auto-categorized
+  // Calendar integration fields (from TaskSchedulingExtension)
+  /** Type of task for scheduling rules */
+  taskType?: TaskType
+  /** ID of the calendar event if scheduled */
+  calendarEventId?: string
+  /** ID of the calendar the task is scheduled on */
+  calendarId?: string
+  /** Scheduled start time on calendar */
+  scheduledStart?: Date
+  /** Scheduled end time on calendar */
+  scheduledEnd?: Date
+  /** Current sync status with calendar */
+  syncStatus?: 'pending' | 'synced' | 'error' | 'orphaned'
+  /** Buffer time in minutes before the task */
+  bufferBefore?: number
+  /** Buffer time in minutes after the task */
+  bufferAfter?: number
 }
 
 export interface Project {
