@@ -38,8 +38,8 @@ export const calendarOAuthCallback = functions.https.onRequest(
   async (req, res) => {
     const { code, state, error } = req.query;
 
-    // Base URL for redirect (should be configured via environment)
-    const appBaseUrl = process.env.APP_BASE_URL || 'http://localhost:5173';
+    // Base URL for redirect (from config)
+    const appBaseUrl = OAUTH_CONFIG.appBaseUrl || 'http://localhost:5173';
     const successRedirect = `${appBaseUrl}/settings?calendar=connected`;
     const errorRedirect = `${appBaseUrl}/settings?calendar=error`;
 
@@ -119,17 +119,21 @@ export const calendarOAuthCallback = functions.https.onRequest(
       // Save tokens
       await saveTokens(userId, oauthTokens);
 
-      // Fetch and store user's calendars
-      await fetchAndStoreCalendars(userId, oauth2Client);
+      // Fetch and store user's calendars, get primary calendar email
+      const primaryEmail = await fetchAndStoreCalendars(userId, oauth2Client);
 
-      // Update user document to indicate calendar is connected
-      await db.collection('users').doc(userId).set(
-        {
-          calendarConnected: true,
-          calendarConnectedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // Update calendarConnection/status subcollection to indicate calendar is connected
+      // This is what the frontend subscribes to
+      await db
+        .collection('users')
+        .doc(userId)
+        .collection('calendarConnection')
+        .doc('status')
+        .set({
+          isConnected: true,
+          connectedAt: admin.firestore.FieldValue.serverTimestamp(),
+          email: primaryEmail,
+        });
 
       console.log(`Calendar connected successfully for user ${userId}`);
       res.redirect(successRedirect);
@@ -145,11 +149,12 @@ export const calendarOAuthCallback = functions.https.onRequest(
  *
  * @param userId - The user's Firebase UID
  * @param oauth2Client - Authenticated OAuth2 client
+ * @returns The primary calendar's email address
  */
 async function fetchAndStoreCalendars(
   userId: string,
   oauth2Client: InstanceType<typeof google.auth.OAuth2>
-): Promise<void> {
+): Promise<string | null> {
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
   // Fetch calendar list
@@ -183,6 +188,10 @@ async function fetchAndStoreCalendars(
 
   await batch.commit();
   console.log(`Stored ${calendars.length} calendars for user ${userId}`);
+
+  // Return the primary calendar's ID (usually the user's email)
+  const primaryCalendar = calendars.find((c) => c.primary);
+  return primaryCalendar?.id || null;
 }
 
 /**
