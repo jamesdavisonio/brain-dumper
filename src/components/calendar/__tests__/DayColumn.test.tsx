@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { DayColumn } from '../DayColumn'
 import type { AvailabilityWindow, CalendarEvent, TimeSlot } from '@/types/calendar'
-import { setHours, setMinutes, startOfDay, addMinutes, format, isToday } from 'date-fns'
+import { setHours, setMinutes, startOfDay, addMinutes, format } from 'date-fns'
 
 // Helper to create mock availability data
 function createMockAvailability(date: Date): AvailabilityWindow {
@@ -249,11 +249,10 @@ describe('DayColumn', () => {
       // 6 AM and 7 AM should exist but be outside working hours
       // These should have reduced opacity
       const hourLabel6am = screen.queryByText('6 AM')
-      const hourLabel7am = screen.queryByText('7 AM')
       const hourLabel9am = screen.getByText('9 AM')
 
       expect(hourLabel9am).toBeInTheDocument()
-      // 6 AM and 7 AM might be present but should be dimmed
+      // 6 AM might be present but should be dimmed
       if (hourLabel6am) {
         const parentElement = hourLabel6am.closest('div')
         expect(parentElement).toBeInTheDocument()

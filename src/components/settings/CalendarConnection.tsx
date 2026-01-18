@@ -28,8 +28,6 @@ export interface CalendarContextType {
 export interface CalendarConnectionProps {
   // If provided, use these values instead of context
   context?: CalendarContextType
-  // Hook to get calendar context (for integration with Agent 1B's context)
-  useCalendarContext?: () => CalendarContextType
 }
 
 // Default mock context for standalone usage and testing
@@ -48,15 +46,12 @@ const defaultMockContext: CalendarContextType = {
 
 export function CalendarConnection({
   context,
-  useCalendarContext,
 }: CalendarConnectionProps = {}) {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false)
   const [isDisconnecting, setIsDisconnecting] = useState(false)
 
-  // Get context from hook if provided, otherwise use passed context or default
-  const calendarContext = useCalendarContext
-    ? useCalendarContext()
-    : context || defaultMockContext
+  // Use passed context or default mock
+  const calendarContext = context || defaultMockContext
 
   const {
     isConnected,

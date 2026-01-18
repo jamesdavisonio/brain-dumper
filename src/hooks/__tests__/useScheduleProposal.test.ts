@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { useScheduleProposal } from '../useScheduleProposal'
-import type { SchedulingSuggestion, Task, TimeSlot } from '@/types'
+import type { SchedulingSuggestion, Task } from '@/types'
 import type { ScheduleProposal, ConfirmResult } from '@/services/scheduling'
 
 // Mock the scheduling service

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import type { AvailabilityWindow, TimeSlot } from '@/types'
+import type { AvailabilityWindow } from '@/types'
 import {
   formatDateKey,
   groupAvailabilityByDate,

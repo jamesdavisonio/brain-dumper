@@ -94,7 +94,7 @@ export async function savePreferences(
   const existing = await getDoc(docRef);
 
   // Remove userId from updates to avoid storing it redundantly
-  const { userId: _, ...updates } = preferences;
+  const { userId: _userId, ...updates } = preferences;
 
   if (existing.exists()) {
     await updateDoc(docRef, updates);

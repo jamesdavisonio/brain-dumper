@@ -78,9 +78,7 @@ const googleCalendarHandlers = [
 
 // Gemini API Handlers
 const geminiHandlers = [
-  http.post('https://generativelanguage.googleapis.com/v1beta/*', async ({ request }) => {
-    const url = new URL(request.url)
-
+  http.post('https://generativelanguage.googleapis.com/v1beta/*', async () => {
     // Mock response for brain dump parsing
     const mockResponse = {
       candidates: [

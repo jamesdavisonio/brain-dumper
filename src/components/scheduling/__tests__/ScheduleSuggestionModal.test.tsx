@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ScheduleSuggestionModal } from '../ScheduleSuggestionModal'
-import type { Task, SchedulingSuggestion, AvailabilityWindow } from '@/types'
+import type { Task, SchedulingSuggestion } from '@/types'
 
 const createMockTask = (overrides: Partial<Task> = {}): Task => ({
   id: 'task-1',

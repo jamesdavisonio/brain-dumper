@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SchedulingPreferences } from '../SchedulingPreferences';
-import type { UserSchedulingPreferences, WorkingHoursDay, TaskTypeRule } from '@/types/scheduling';
+import type { UserSchedulingPreferences } from '@/types/scheduling';
 
 // Mock the useSchedulingPreferences hook
 vi.mock('@/hooks/useSchedulingPreferences', () => ({

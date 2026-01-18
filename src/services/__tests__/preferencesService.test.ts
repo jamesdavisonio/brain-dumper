@@ -3,6 +3,8 @@
  * @module services/__tests__/preferencesService.test
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import {

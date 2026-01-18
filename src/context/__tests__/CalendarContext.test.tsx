@@ -39,11 +39,11 @@ vi.mock('@/services/calendar', () => ({
   disconnectCalendar: () => mockDisconnectCalendar(),
   updateCalendarPreferences: (...args: unknown[]) => mockUpdateCalendarPreferences(...args),
   setDefaultCalendar: (...args: unknown[]) => mockSetDefaultCalendar(...args),
-  subscribeToCalendarStatus: (userId: string, callback: Function) =>
+  subscribeToCalendarStatus: (userId: string, callback: (...args: unknown[]) => void) =>
     mockSubscribeToCalendarStatus(userId, callback),
-  subscribeToCalendars: (userId: string, callback: Function) =>
+  subscribeToCalendars: (userId: string, callback: (...args: unknown[]) => void) =>
     mockSubscribeToCalendars(userId, callback),
-  subscribeToCalendarPreferences: (userId: string, callback: Function) =>
+  subscribeToCalendarPreferences: (userId: string, callback: (...args: unknown[]) => void) =>
     mockSubscribeToCalendarPreferences(userId, callback),
 }))
 
@@ -86,7 +86,7 @@ function renderWithCalendarProvider(ui: React.ReactElement) {
 }
 
 describe('CalendarContext', () => {
-  let statusCallback: Function | null = null
+  let statusCallback: ((...args: unknown[]) => void) | null = null
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -166,7 +166,7 @@ describe('CalendarContext', () => {
     })
 
     it('should set connecting state during connection', async () => {
-      let resolveOAuth: Function
+      let resolveOAuth: (value: { success: boolean }) => void
       const oauthPromise = new Promise<{ success: boolean }>((resolve) => {
         resolveOAuth = resolve
       })

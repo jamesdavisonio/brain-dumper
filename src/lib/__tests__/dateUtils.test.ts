@@ -15,7 +15,6 @@ import {
   getMinutesBetween,
   addMinutes,
   toUserTimezone,
-  fromUserTimezone,
   isWithinWorkingHours,
   getWorkingHoursForDate,
   isWorkingDay,

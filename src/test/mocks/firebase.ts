@@ -1,5 +1,4 @@
 import { vi } from 'vitest'
-import type { User } from '@/types'
 
 // Mock Firebase App
 export const mockFirebaseApp = {}
@@ -226,11 +225,11 @@ export const mockAddDoc = vi.fn((collectionRef, data) =>
   Promise.resolve({ id: 'new-doc-id', ...data })
 )
 
-export const mockUpdateDoc = vi.fn((docRef, data) => Promise.resolve())
+export const mockUpdateDoc = vi.fn((_docRef, _data) => Promise.resolve())
 
-export const mockDeleteDoc = vi.fn((docRef) => Promise.resolve())
+export const mockDeleteDoc = vi.fn((_docRef) => Promise.resolve())
 
-export const mockGetDocs = vi.fn((query) =>
+export const mockGetDocs = vi.fn((_query) =>
   Promise.resolve(createMockFirestoreSnapshot([]))
 )
 

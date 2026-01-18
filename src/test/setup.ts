@@ -21,7 +21,7 @@ vi.mock('firebase/auth', async () => {
     GoogleAuthProvider: vi.fn(() => ({
       setCustomParameters: vi.fn(),
     })),
-    onAuthStateChanged: vi.fn((auth, callback) => {
+    onAuthStateChanged: vi.fn((_auth, _callback) => {
       // Return unsubscribe function
       return vi.fn()
     }),
