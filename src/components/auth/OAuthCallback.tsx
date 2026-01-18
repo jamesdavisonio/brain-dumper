@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
-import { postOAuthResult } from '@/lib/oauthPopup'
 
 /**
  * OAuth callback page that receives the redirect from Google OAuth
- * This page is loaded in the popup after Google completes authentication.
- * It extracts the success/error from URL params and posts the result to the parent window.
+ * This page is loaded in the popup after the Cloud Function completes the OAuth flow.
+ * It shows a status message and automatically closes the popup.
+ *
+ * Note: Due to Cross-Origin-Opener-Policy (COOP) restrictions, we can't use
+ * postMessage to communicate with the parent window. Instead, the OAuth callback
+ * Cloud Function writes to Firestore, and the parent window's CalendarContext
+ * subscription detects the connection change.
  */
 export function OAuthCallback() {
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
@@ -13,19 +17,21 @@ export function OAuthCallback() {
   useEffect(() => {
     // Extract parameters from URL
     const params = new URLSearchParams(window.location.search)
-    const success = params.get('success') === 'true'
+    const calendarConnected = params.get('calendar') === 'connected'
+    const success = params.get('success') === 'true' || calendarConnected
     const error = params.get('error')
 
     if (success) {
       setStatus('success')
       setMessage('Calendar connected successfully!')
-    } else {
+    } else if (error) {
       setStatus('error')
-      setMessage(error || 'Failed to connect calendar')
+      setMessage(error)
+    } else {
+      // If no clear indicator, assume it's processing or completed
+      setStatus('success')
+      setMessage('Connection complete!')
     }
-
-    // Post message to parent window
-    postOAuthResult(success, error || undefined)
 
     // Close popup after short delay to show status message
     const closeTimeout = setTimeout(() => {
