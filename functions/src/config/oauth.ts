@@ -1,36 +1,28 @@
 /**
  * OAuth configuration for Google Calendar integration
+ * Uses environment variables (set via .env file or Cloud Functions environment)
  * @module config/oauth
  */
 
-import * as functions from 'firebase-functions';
-
 /**
- * Get OAuth configuration
- * Values are loaded from Firebase Functions config or environment variables
+ * OAuth configuration object
+ * Values are loaded from environment variables
  */
-function getOAuthConfig() {
-  // Try Firebase Functions config first, fall back to environment variables
-  const config = functions.config();
-
-  return {
-    /** Google OAuth Client ID */
-    clientId: config.google?.client_id || process.env.GOOGLE_CLIENT_ID || '',
-    /** Google OAuth Client Secret */
-    clientSecret: config.google?.client_secret || process.env.GOOGLE_CLIENT_SECRET || '',
-    /** OAuth callback redirect URI */
-    redirectUri: config.oauth?.redirect_uri || process.env.OAUTH_REDIRECT_URI || '',
-    /** App base URL for redirects */
-    appBaseUrl: config.app?.base_url || process.env.APP_BASE_URL || '',
-    /** OAuth scopes for Google Calendar access */
-    scopes: [
-      'https://www.googleapis.com/auth/calendar.readonly',
-      'https://www.googleapis.com/auth/calendar.events',
-    ],
-  };
-}
-
-export const OAUTH_CONFIG = getOAuthConfig();
+export const OAUTH_CONFIG = {
+  /** Google OAuth Client ID */
+  clientId: process.env.GOOGLE_CLIENT_ID || '',
+  /** Google OAuth Client Secret */
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  /** OAuth callback redirect URI */
+  redirectUri: process.env.OAUTH_REDIRECT_URI || '',
+  /** App base URL for redirects */
+  appBaseUrl: process.env.APP_BASE_URL || '',
+  /** OAuth scopes for Google Calendar access */
+  scopes: [
+    'https://www.googleapis.com/auth/calendar.readonly',
+    'https://www.googleapis.com/auth/calendar.events',
+  ],
+};
 
 /**
  * Token expiry buffer in milliseconds

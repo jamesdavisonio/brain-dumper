@@ -147,15 +147,14 @@ jobs:
       - name: Build functions
         run: cd functions && npm run build
 
-      - name: Set Firebase Functions Config
+      - name: Create functions .env file
         run: |
-          firebase functions:config:set \
-            google.client_id="${{ secrets.GOOGLE_CLIENT_ID }}" \
-            google.client_secret="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-            oauth.redirect_uri="${{ secrets.OAUTH_REDIRECT_URI }}" \
-            app.base_url="${{ secrets.APP_BASE_URL }}" \
-            --token "${{ secrets.FIREBASE_TOKEN }}" \
-            --project "${{ secrets.VITE_FIREBASE_PROJECT_ID }}"
+          cat > functions/.env << EOF
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          OAUTH_REDIRECT_URI=${{ secrets.OAUTH_REDIRECT_URI }}
+          APP_BASE_URL=${{ secrets.APP_BASE_URL }}
+          EOF
 
       - name: Deploy Cloud Functions
         run: firebase deploy --only functions --force --token "${{ secrets.FIREBASE_TOKEN }}"
