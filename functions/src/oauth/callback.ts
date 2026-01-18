@@ -40,8 +40,9 @@ export const calendarOAuthCallback = functions.https.onRequest(
 
     // Base URL for redirect (from config)
     const appBaseUrl = OAUTH_CONFIG.appBaseUrl || 'http://localhost:5173';
-    const successRedirect = `${appBaseUrl}/settings?calendar=connected`;
-    const errorRedirect = `${appBaseUrl}/settings?calendar=error`;
+    // Redirect to the OAuth callback page which shows status and closes the popup
+    const successRedirect = `${appBaseUrl}/oauth/callback?success=true`;
+    const errorRedirect = `${appBaseUrl}/oauth/callback?success=false`;
 
     // Check if user denied access
     if (error) {
