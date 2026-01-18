@@ -6,53 +6,13 @@ import { OAuthButton } from './OAuthButton'
 import { ConnectionStatus } from './ConnectionStatus'
 import { CalendarSelector } from './CalendarSelector'
 import { DisconnectDialog } from './DisconnectDialog'
-import type { ConnectedCalendar } from './CalendarItem'
+import { useCalendar } from '@/context/CalendarContext'
 
-// Interface matching the CalendarContext that Agent 1B will create
-export interface CalendarContextType {
-  isConnected: boolean
-  isConnecting: boolean
-  connectionError: string | null
-  calendars: ConnectedCalendar[]
-  isLoadingCalendars: boolean
-  enabledCalendarIds: string[]
-  connectedEmail?: string
-  connectedAt?: Date
-  connect: () => Promise<void>
-  disconnect: () => Promise<void>
-  toggleCalendar: (calendarId: string, enabled: boolean) => Promise<void>
-  setCalendarType: (calendarId: string, type: 'work' | 'personal') => Promise<void>
-}
-
-// Props interface for testing and flexibility
-export interface CalendarConnectionProps {
-  // If provided, use these values instead of context
-  context?: CalendarContextType
-}
-
-// Default mock context for standalone usage and testing
-const defaultMockContext: CalendarContextType = {
-  isConnected: false,
-  isConnecting: false,
-  connectionError: null,
-  calendars: [],
-  isLoadingCalendars: false,
-  enabledCalendarIds: [],
-  connect: async () => {},
-  disconnect: async () => {},
-  toggleCalendar: async () => {},
-  setCalendarType: async () => {},
-}
-
-export function CalendarConnection({
-  context,
-}: CalendarConnectionProps = {}) {
+export function CalendarConnection() {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false)
   const [isDisconnecting, setIsDisconnecting] = useState(false)
 
-  // Use passed context or default mock
-  const calendarContext = context || defaultMockContext
-
+  // Use the calendar context
   const {
     isConnected,
     isConnecting,
@@ -66,7 +26,7 @@ export function CalendarConnection({
     disconnect,
     toggleCalendar,
     setCalendarType,
-  } = calendarContext
+  } = useCalendar()
 
   const handleConnect = async () => {
     try {
@@ -161,8 +121,8 @@ export function CalendarConnection({
               {/* Connection Status */}
               <ConnectionStatus
                 isConnected={true}
-                connectedEmail={connectedEmail}
-                connectedAt={connectedAt}
+                connectedEmail={connectedEmail ?? undefined}
+                connectedAt={connectedAt ?? undefined}
               />
 
               {/* Divider */}
@@ -170,7 +130,13 @@ export function CalendarConnection({
 
               {/* Calendar Selector */}
               <CalendarSelector
-                calendars={calendars}
+                calendars={calendars.map(c => ({
+                  id: c.id,
+                  name: c.name,
+                  color: c.color,
+                  isPrimary: c.primary,
+                  type: c.type,
+                }))}
                 enabledIds={enabledCalendarIds}
                 onToggle={handleToggleCalendar}
                 onTypeChange={handleTypeChange}
