@@ -51,6 +51,37 @@ service cloud.firestore {
         allow read: if isAuthenticated() && request.auth.uid == userId;
         allow write: if isAuthenticated() && request.auth.uid == userId;
       }
+
+      // Calendar connection status
+      match /calendarConnection/{document} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if isAuthenticated() && request.auth.uid == userId;
+      }
+
+      // User preferences (calendar, etc.)
+      match /preferences/{document} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if isAuthenticated() && request.auth.uid == userId;
+      }
+
+      // Settings subcollection for scheduling preferences
+      match /settings/{settingId} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if isAuthenticated() && request.auth.uid == userId;
+      }
+
+      // Schedule proposals for approval workflow
+      match /scheduleProposals/{proposalId} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+
+    // Calendar watch subscriptions (for webhook notifications)
+    // Managed by Cloud Functions, users can read their own
+    match /calendarWatches/{watchId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow write: if false; // Only Cloud Functions can write
     }
 
     // OAuth state tokens (temporary, used during OAuth flow)

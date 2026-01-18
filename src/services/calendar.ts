@@ -33,9 +33,9 @@ export interface CalendarPreferences {
  * Returns a URL to open in a popup for user authentication
  */
 export async function initiateOAuthFlow(): Promise<{ url: string }> {
-  const initOAuth = httpsCallable<void, { url: string }>(functions, 'calendarOAuthInit')
+  const initOAuth = httpsCallable<void, { authUrl: string }>(functions, 'calendarOAuthInit')
   const result = await initOAuth()
-  return result.data
+  return { url: result.data.authUrl }
 }
 
 /**
