@@ -183,12 +183,25 @@ describe('CalendarContext', () => {
         expect(screen.getByTestId('is-connecting')).toHaveTextContent('true')
       })
 
-      // Complete OAuth
+      // Complete OAuth popup (returns immediately due to COOP restrictions)
       await act(async () => {
         resolveOAuth!({ success: true })
       })
 
-      // Should no longer be connecting
+      // Should still be connecting because we wait for Firestore to update
+      // (the popup can't communicate back due to Cross-Origin-Opener-Policy)
+      expect(screen.getByTestId('is-connecting')).toHaveTextContent('true')
+
+      // Simulate Firestore subscription callback (this is what triggers the UI update)
+      await act(async () => {
+        statusCallback?.({
+          isConnected: true,
+          connectedAt: new Date(),
+          email: 'test@example.com',
+        })
+      })
+
+      // Now should no longer be connecting
       await waitFor(() => {
         expect(screen.getByTestId('is-connecting')).toHaveTextContent('false')
       })

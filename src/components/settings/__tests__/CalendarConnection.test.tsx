@@ -1,11 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { CalendarConnection, type CalendarContextType } from '../CalendarConnection'
-import type { ConnectedCalendar } from '../CalendarItem'
+import { CalendarConnection } from '../CalendarConnection'
+import type { CalendarContextType } from '@/context/CalendarContext'
+import type { ConnectedCalendar } from '@/types/calendar'
+
+// Mock the useCalendar hook
+const mockUseCalendar = vi.fn()
+vi.mock('@/context/CalendarContext', () => ({
+  useCalendar: () => mockUseCalendar(),
+}))
 
 const mockCalendars: ConnectedCalendar[] = [
-  { id: 'cal-1', name: 'Work Calendar', color: '#4285F4', isPrimary: true, type: 'work' },
-  { id: 'cal-2', name: 'Personal Calendar', color: '#34A853', isPrimary: false, type: 'personal' },
+  {
+    id: 'cal-1',
+    name: 'Work Calendar',
+    color: '#4285F4',
+    primary: true,
+    type: 'work',
+    accessRole: 'owner',
+    enabled: true,
+  },
+  {
+    id: 'cal-2',
+    name: 'Personal Calendar',
+    color: '#34A853',
+    primary: false,
+    type: 'personal',
+    accessRole: 'owner',
+    enabled: true,
+  },
 ]
 
 const createMockContext = (overrides: Partial<CalendarContextType> = {}): CalendarContextType => ({
@@ -15,21 +38,29 @@ const createMockContext = (overrides: Partial<CalendarContextType> = {}): Calend
   calendars: [],
   isLoadingCalendars: false,
   enabledCalendarIds: [],
+  connectedEmail: null,
+  connectedAt: null,
+  workCalendarId: null,
+  personalCalendarId: null,
   connect: vi.fn().mockResolvedValue(undefined),
   disconnect: vi.fn().mockResolvedValue(undefined),
+  refreshCalendars: vi.fn().mockResolvedValue(undefined),
   toggleCalendar: vi.fn().mockResolvedValue(undefined),
   setCalendarType: vi.fn().mockResolvedValue(undefined),
+  setDefaultCalendar: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 })
 
 describe('CalendarConnection', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Default mock implementation
+    mockUseCalendar.mockReturnValue(createMockContext())
   })
 
   describe('Disconnected State', () => {
     it('renders Google Calendar title and description', () => {
-      render(<CalendarConnection context={createMockContext()} />)
+      render(<CalendarConnection />)
 
       expect(screen.getByText('Google Calendar')).toBeInTheDocument()
       // Card description contains this text
@@ -37,24 +68,22 @@ describe('CalendarConnection', () => {
     })
 
     it('shows not connected status', () => {
-      render(<CalendarConnection context={createMockContext()} />)
+      render(<CalendarConnection />)
 
       expect(screen.getByText('Not connected')).toBeInTheDocument()
     })
 
     it('renders connect button', () => {
-      render(<CalendarConnection context={createMockContext()} />)
+      render(<CalendarConnection />)
 
       expect(screen.getByRole('button', { name: /connect with google calendar/i })).toBeInTheDocument()
     })
 
     it('calls connect when button is clicked', async () => {
       const mockConnect = vi.fn().mockResolvedValue(undefined)
-      render(
-        <CalendarConnection
-          context={createMockContext({ connect: mockConnect })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({ connect: mockConnect }))
+
+      render(<CalendarConnection />)
 
       const connectButton = screen.getByRole('button', { name: /connect with google calendar/i })
       fireEvent.click(connectButton)
@@ -65,11 +94,9 @@ describe('CalendarConnection', () => {
 
   describe('Connecting State', () => {
     it('shows loading state on connect button', () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({ isConnecting: true })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({ isConnecting: true }))
+
+      render(<CalendarConnection />)
 
       expect(screen.getByText('Connecting...')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /connecting to google calendar/i })).toBeDisabled()
@@ -78,15 +105,13 @@ describe('CalendarConnection', () => {
 
   describe('Connected State', () => {
     it('shows connected status with email', () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({
-            isConnected: true,
-            connectedEmail: 'john@example.com',
-            connectedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-          })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({
+        isConnected: true,
+        connectedEmail: 'john@example.com',
+        connectedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      }))
+
+      render(<CalendarConnection />)
 
       expect(screen.getByText('Connected')).toBeInTheDocument()
       expect(screen.getByText('john@example.com')).toBeInTheDocument()
@@ -94,15 +119,13 @@ describe('CalendarConnection', () => {
     })
 
     it('renders calendar selector when connected', () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({
-            isConnected: true,
-            calendars: mockCalendars,
-            enabledCalendarIds: ['cal-1'],
-          })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({
+        isConnected: true,
+        calendars: mockCalendars,
+        enabledCalendarIds: ['cal-1'],
+      }))
+
+      render(<CalendarConnection />)
 
       expect(screen.getByText('Your Calendars')).toBeInTheDocument()
       expect(screen.getByText('Work Calendar')).toBeInTheDocument()
@@ -110,34 +133,28 @@ describe('CalendarConnection', () => {
     })
 
     it('shows loading skeleton when loading calendars', () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({
-            isConnected: true,
-            isLoadingCalendars: true,
-          })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({
+        isConnected: true,
+        isLoadingCalendars: true,
+      }))
+
+      render(<CalendarConnection />)
 
       expect(screen.getByRole('status', { name: /loading calendars/i })).toBeInTheDocument()
     })
 
     it('renders disconnect button', () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({ isConnected: true })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({ isConnected: true }))
+
+      render(<CalendarConnection />)
 
       expect(screen.getByRole('button', { name: /disconnect/i })).toBeInTheDocument()
     })
 
     it('opens disconnect dialog when disconnect is clicked', () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({ isConnected: true })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({ isConnected: true }))
+
+      render(<CalendarConnection />)
 
       const disconnectButton = screen.getByRole('button', { name: /disconnect/i })
       fireEvent.click(disconnectButton)
@@ -148,14 +165,12 @@ describe('CalendarConnection', () => {
 
     it('calls disconnect when confirmed in dialog', async () => {
       const mockDisconnect = vi.fn().mockResolvedValue(undefined)
-      render(
-        <CalendarConnection
-          context={createMockContext({
-            isConnected: true,
-            disconnect: mockDisconnect,
-          })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({
+        isConnected: true,
+        disconnect: mockDisconnect,
+      }))
+
+      render(<CalendarConnection />)
 
       // Open dialog
       fireEvent.click(screen.getByRole('button', { name: /disconnect/i }))
@@ -170,11 +185,9 @@ describe('CalendarConnection', () => {
     })
 
     it('closes dialog when cancel is clicked', async () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({ isConnected: true })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({ isConnected: true }))
+
+      render(<CalendarConnection />)
 
       // Open dialog
       fireEvent.click(screen.getByRole('button', { name: /disconnect/i }))
@@ -190,16 +203,14 @@ describe('CalendarConnection', () => {
 
     it('calls toggleCalendar when calendar is toggled', async () => {
       const mockToggle = vi.fn().mockResolvedValue(undefined)
-      render(
-        <CalendarConnection
-          context={createMockContext({
-            isConnected: true,
-            calendars: mockCalendars,
-            enabledCalendarIds: ['cal-1'],
-            toggleCalendar: mockToggle,
-          })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({
+        isConnected: true,
+        calendars: mockCalendars,
+        enabledCalendarIds: ['cal-1'],
+        toggleCalendar: mockToggle,
+      }))
+
+      render(<CalendarConnection />)
 
       const switches = screen.getAllByRole('switch')
       fireEvent.click(switches[0])
@@ -210,81 +221,38 @@ describe('CalendarConnection', () => {
 
   describe('Error State', () => {
     it('shows error message when connectionError exists', () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({
-            connectionError: 'Failed to authenticate with Google',
-          })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({
+        connectionError: 'Failed to authenticate with Google',
+      }))
+
+      render(<CalendarConnection />)
 
       expect(screen.getByText('Connection failed')).toBeInTheDocument()
       expect(screen.getByText('Failed to authenticate with Google')).toBeInTheDocument()
     })
 
     it('shows retry button in error state', () => {
-      render(
-        <CalendarConnection
-          context={createMockContext({
-            connectionError: 'Network error',
-          })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({
+        connectionError: 'Network error',
+      }))
+
+      render(<CalendarConnection />)
 
       expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
     })
 
     it('calls connect when retry button is clicked', () => {
       const mockConnect = vi.fn().mockResolvedValue(undefined)
-      render(
-        <CalendarConnection
-          context={createMockContext({
-            connectionError: 'Network error',
-            connect: mockConnect,
-          })}
-        />
-      )
+      mockUseCalendar.mockReturnValue(createMockContext({
+        connectionError: 'Network error',
+        connect: mockConnect,
+      }))
+
+      render(<CalendarConnection />)
 
       fireEvent.click(screen.getByRole('button', { name: /try again/i }))
 
       expect(mockConnect).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  describe('Context Integration', () => {
-    it('uses context from useCalendarContext hook when provided', () => {
-      const mockContext = createMockContext({
-        isConnected: true,
-        connectedEmail: 'hook@example.com',
-      })
-      const useCalendarContext = vi.fn().mockReturnValue(mockContext)
-
-      render(<CalendarConnection useCalendarContext={useCalendarContext} />)
-
-      expect(useCalendarContext).toHaveBeenCalled()
-      expect(screen.getByText('hook@example.com')).toBeInTheDocument()
-    })
-
-    it('prefers useCalendarContext over context prop', () => {
-      const contextProp = createMockContext({
-        isConnected: true,
-        connectedEmail: 'prop@example.com',
-      })
-      const hookContext = createMockContext({
-        isConnected: true,
-        connectedEmail: 'hook@example.com',
-      })
-      const useCalendarContext = vi.fn().mockReturnValue(hookContext)
-
-      render(
-        <CalendarConnection
-          context={contextProp}
-          useCalendarContext={useCalendarContext}
-        />
-      )
-
-      expect(screen.getByText('hook@example.com')).toBeInTheDocument()
-      expect(screen.queryByText('prop@example.com')).not.toBeInTheDocument()
     })
   })
 })

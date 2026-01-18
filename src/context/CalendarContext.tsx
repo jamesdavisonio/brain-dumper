@@ -74,6 +74,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     if (!user) {
       // Reset state when user logs out
       setIsConnected(false)
+      setIsConnecting(false)
       setConnectedAt(null)
       setConnectedEmail(null)
       setCalendars([])
@@ -90,6 +91,10 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       setConnectedEmail(status.email)
       if (status.error) {
         setConnectionError(status.error)
+      }
+      // When connection status changes (either connected or error), stop the connecting state
+      if (status.isConnected || status.error) {
+        setIsConnecting(false)
       }
     })
 
@@ -146,14 +151,17 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
 
       if (!result.success) {
         setConnectionError(result.error ?? 'Failed to connect calendar')
+        setIsConnecting(false)
       }
-      // On success, the subscription to calendar status will update the state
+      // On success, we keep isConnecting true until the Firestore subscription
+      // detects the connection change. The popup will redirect to the app
+      // settings page after OAuth completes, and Firestore will be updated.
+      // The subscription in useEffect will update isConnected to true.
     } catch (error) {
       console.error('Error initiating OAuth flow:', error)
       setConnectionError(
         error instanceof Error ? error.message : 'Failed to initiate calendar connection'
       )
-    } finally {
       setIsConnecting(false)
     }
   }, [user])

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2025-01-18
+
+### Fixed
+- Fixed Cross-Origin-Opener-Policy (COOP) issue blocking OAuth popup communication
+  - OAuth flow now relies on Firestore subscription instead of postMessage/popup.closed
+  - Popup opens and returns immediately; UI updates when Firestore detects connection
+- Fixed OAuth callback writing to correct Firestore path (`calendarConnection/status`)
+- Fixed GitHub workflow to use .env file for Cloud Functions OAuth secrets
+- Fixed lint errors including conditional hook calls and unused imports
+- Updated CalendarConnection component tests to properly mock useCalendar hook
+
 ## [2.0.0] - 2025-01-18
 
 ### Added

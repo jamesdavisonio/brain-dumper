@@ -1,5 +1,14 @@
 /**
  * OAuth popup utility for handling OAuth flows in a popup window
+ *
+ * This implementation does NOT rely on postMessage or checking popup.closed,
+ * which are blocked by Cross-Origin-Opener-Policy (COOP) when the popup
+ * navigates to different origins (e.g., Google OAuth servers).
+ *
+ * Instead, it simply opens the popup and returns immediately. The OAuth
+ * callback will write to Firestore, and the CalendarContext's subscription
+ * will detect the connection change.
+ *
  * @module lib/oauthPopup
  */
 
@@ -7,15 +16,6 @@
  * Result of an OAuth popup flow
  */
 export interface OAuthPopupResult {
-  success: boolean
-  error?: string
-}
-
-/**
- * Message sent from the OAuth callback page to the parent window
- */
-export interface OAuthMessage {
-  type: 'OAUTH_COMPLETE'
   success: boolean
   error?: string
 }
@@ -41,10 +41,18 @@ function getCenterPosition(width: number, height: number): { left: number; top: 
 }
 
 /**
- * Opens an OAuth popup window and waits for the OAuth flow to complete
+ * Opens an OAuth popup window for the authorization flow
+ *
+ * Due to Cross-Origin-Opener-Policy (COOP) restrictions, we cannot:
+ * - Check if the popup was closed (popup.closed is blocked)
+ * - Receive postMessage from the popup (different origin)
+ *
+ * Instead, the OAuth callback writes to Firestore, and the parent window's
+ * CalendarContext subscription detects the connection change automatically.
+ *
  * @param url - The OAuth authorization URL to open
  * @param options - Optional popup window dimensions
- * @returns Promise that resolves with the OAuth result
+ * @returns Promise that resolves immediately after opening the popup
  */
 export function openOAuthPopup(
   url: string,
@@ -71,81 +79,13 @@ export function openOAuthPopup(
       return
     }
 
-    // Variable to track if we've already resolved
-    let resolved = false
-
-    // Listen for message from popup
-    const handleMessage = (event: MessageEvent<OAuthMessage>) => {
-      // Only accept messages from the same origin
-      if (event.origin !== window.location.origin) {
-        return
-      }
-
-      // Check if this is an OAuth completion message
-      if (event.data?.type === 'OAUTH_COMPLETE') {
-        cleanup()
-        resolve({
-          success: event.data.success,
-          error: event.data.error,
-        })
-      }
-    }
-
-    // Cleanup function to remove listeners and close popup
-    const cleanup = () => {
-      if (resolved) return
-      resolved = true
-      window.removeEventListener('message', handleMessage)
-      clearInterval(checkClosedInterval)
-      if (popup && !popup.closed) {
-        popup.close()
-      }
-    }
-
-    // Add message listener
-    window.addEventListener('message', handleMessage)
-
-    // Check if popup was closed without completing OAuth
-    const checkClosedInterval = setInterval(() => {
-      if (popup?.closed && !resolved) {
-        cleanup()
-        resolve({
-          success: false,
-          error: 'Authentication was cancelled',
-        })
-      }
-    }, 500)
-
-    // Set a timeout for the OAuth flow (5 minutes)
-    setTimeout(() => {
-      if (!resolved) {
-        cleanup()
-        resolve({
-          success: false,
-          error: 'Authentication timed out. Please try again.',
-        })
-      }
-    }, 5 * 60 * 1000)
+    // Due to COOP restrictions, we cannot reliably detect when the popup
+    // closes or receive messages from it. Instead, we resolve immediately
+    // and let the Firestore subscription handle the connection status update.
+    //
+    // The user will see the "Connecting..." state while the popup is open,
+    // and when the OAuth flow completes, the callback writes to Firestore,
+    // which triggers the subscription and updates the UI.
+    resolve({ success: true })
   })
-}
-
-/**
- * Posts the OAuth result to the parent window
- * This is called from the OAuth callback page
- * @param success - Whether the OAuth flow was successful
- * @param error - Optional error message if the flow failed
- */
-export function postOAuthResult(success: boolean, error?: string): void {
-  if (!window.opener) {
-    console.warn('No parent window found to post OAuth result')
-    return
-  }
-
-  const message: OAuthMessage = {
-    type: 'OAUTH_COMPLETE',
-    success,
-    error,
-  }
-
-  window.opener.postMessage(message, window.location.origin)
 }
