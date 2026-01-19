@@ -148,18 +148,36 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
     try {
       // Get the OAuth URL from our Cloud Function
       const { url } = await initiateOAuthFlow()
+      console.log('[CalendarContext] Opening OAuth popup with URL:', url)
 
       // Open the OAuth popup
       const result = await openOAuthPopup(url)
+      console.log('[CalendarContext] OAuth popup returned:', result)
 
       if (!result.success) {
         setConnectionError(result.error ?? 'Failed to connect calendar')
         setIsConnecting(false)
+        return
       }
+
       // On success, we keep isConnecting true until the Firestore subscription
-      // detects the connection change. The popup will redirect to the app
-      // settings page after OAuth completes, and Firestore will be updated.
-      // The subscription in useEffect will update isConnected to true.
+      // detects the connection change. Add a timeout to stop showing "Connecting..."
+      // if something goes wrong (e.g., user closes popup, Cloud Function fails)
+      const timeoutId = setTimeout(() => {
+        setIsConnecting((current) => {
+          if (current) {
+            console.log('[CalendarContext] OAuth timeout - stopping connecting state')
+            // Don't set an error, just stop the loading state
+            // The user can try again if needed
+          }
+          return false
+        })
+      }, 60000) // 60 second timeout
+
+      // Store the timeout ID so we can clear it if connection succeeds
+      // The subscription callback will set isConnecting to false, which is fine
+      // because the timeout just ensures we don't hang forever
+      return () => clearTimeout(timeoutId)
     } catch (error) {
       console.error('Error initiating OAuth flow:', error)
       setConnectionError(
