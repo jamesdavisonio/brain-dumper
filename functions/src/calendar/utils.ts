@@ -32,14 +32,12 @@ export interface BusyPeriod {
 export interface AvailabilityWindow {
   /** Date string in ISO format (YYYY-MM-DD) */
   date: string;
-  /** Day of week (0 = Sunday, 6 = Saturday) */
-  dayOfWeek: number;
-  /** Total available minutes for the day */
-  totalAvailableMinutes: number;
-  /** Available time slots */
-  availableSlots: Array<{ start: string; end: string }>;
-  /** Busy time slots */
-  busySlots: Array<{ start: string; end: string }>;
+  /** Time slots with availability status */
+  slots: Array<{ start: string; end: string; available: boolean; calendarId?: string; eventId?: string }>;
+  /** Total free minutes for the day */
+  totalFreeMinutes: number;
+  /** Total busy minutes for the day */
+  totalBusyMinutes: number;
 }
 
 /**
@@ -245,74 +243,34 @@ export function calculateAvailability(
     }
   }
 
-  // Calculate available and busy slots
-  const availableSlots: Array<{ start: string; end: string }> = [];
-  const busySlots: Array<{ start: string; end: string }> = [];
+  // Convert slots to the expected format with ISO strings
+  const serializedSlots = slots.map((slot) => ({
+    start: slot.start.toISOString(),
+    end: slot.end.toISOString(),
+    available: slot.available,
+  }));
 
-  // Group consecutive available slots
-  let currentAvailableStart: Date | null = null;
-  let currentAvailableEnd: Date | null = null;
+  // Calculate total free and busy minutes
+  const totalFreeMinutes = slots
+    .filter((s) => s.available)
+    .reduce((total, slot) => {
+      return total + (slot.end.getTime() - slot.start.getTime()) / (1000 * 60);
+    }, 0);
 
-  for (const slot of slots) {
-    if (slot.available) {
-      if (currentAvailableStart === null) {
-        currentAvailableStart = slot.start;
-      }
-      currentAvailableEnd = slot.end;
-    } else {
-      // End current available streak
-      if (currentAvailableStart !== null && currentAvailableEnd !== null) {
-        availableSlots.push({
-          start: currentAvailableStart.toISOString(),
-          end: currentAvailableEnd.toISOString(),
-        });
-      }
-      currentAvailableStart = null;
-      currentAvailableEnd = null;
-    }
-  }
-
-  // Don't forget the last available streak
-  if (currentAvailableStart !== null && currentAvailableEnd !== null) {
-    availableSlots.push({
-      start: currentAvailableStart.toISOString(),
-      end: currentAvailableEnd.toISOString(),
-    });
-  }
-
-  // Calculate busy slots within working hours
-  const dayStart = createDateWithTime(date, workingHours.start, timezone);
-  const dayEnd = createDateWithTime(date, workingHours.end, timezone);
-
-  for (const busy of mergedBusy) {
-    // Only include busy periods that overlap with working hours
-    const overlapStart = new Date(Math.max(busy.start.getTime(), dayStart.getTime()));
-    const overlapEnd = new Date(Math.min(busy.end.getTime(), dayEnd.getTime()));
-
-    if (overlapStart < overlapEnd) {
-      busySlots.push({
-        start: overlapStart.toISOString(),
-        end: overlapEnd.toISOString(),
-      });
-    }
-  }
-
-  // Calculate total available minutes
-  const totalAvailableMinutes = availableSlots.reduce((total, slot) => {
-    const start = new Date(slot.start);
-    const end = new Date(slot.end);
-    return total + (end.getTime() - start.getTime()) / (1000 * 60);
-  }, 0);
+  const totalBusyMinutes = slots
+    .filter((s) => !s.available)
+    .reduce((total, slot) => {
+      return total + (slot.end.getTime() - slot.start.getTime()) / (1000 * 60);
+    }, 0);
 
   // Format date string
   const dateStr = date.toISOString().split('T')[0];
 
   return {
     date: dateStr,
-    dayOfWeek: date.getDay(),
-    totalAvailableMinutes,
-    availableSlots,
-    busySlots,
+    slots: serializedSlots,
+    totalFreeMinutes,
+    totalBusyMinutes,
   };
 }
 

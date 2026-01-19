@@ -246,7 +246,7 @@ function deserializeCalendarEvent(event: SerializedCalendarEvent): CalendarEvent
 function deserializeAvailabilityWindow(window: SerializedAvailabilityWindow): AvailabilityWindow {
   return {
     date: new Date(window.date),
-    slots: window.slots.map((slot) => ({
+    slots: (window.slots || []).map((slot) => ({
       ...slot,
       start: new Date(slot.start),
       end: new Date(slot.end),

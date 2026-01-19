@@ -60,8 +60,8 @@ interface GetAvailabilityResponse {
   success: boolean;
   /** Availability windows for each day in the range */
   availability: AvailabilityWindow[];
-  /** Total available minutes across all days */
-  totalAvailableMinutes: number;
+  /** Total free minutes across all days */
+  totalFreeMinutes: number;
   /** Calendars that were checked */
   calendarsChecked: string[];
   /** Error message if request failed */
@@ -179,7 +179,7 @@ export const getAvailability = functions.https.onCall(
         return {
           success: false,
           availability: [],
-          totalAvailableMinutes: 0,
+          totalFreeMinutes: 0,
           calendarsChecked: [],
           error: 'Calendar not connected. Please connect your calendar first.',
         };
@@ -222,7 +222,7 @@ export const getAvailability = functions.https.onCall(
 
       // Calculate availability for each day
       const availability: AvailabilityWindow[] = [];
-      let totalAvailableMinutes = 0;
+      let totalFreeMinutes = 0;
 
       for (const date of dates) {
         // Filter busy periods for this day
@@ -245,17 +245,17 @@ export const getAvailability = functions.https.onCall(
         );
 
         availability.push(dayAvailability);
-        totalAvailableMinutes += dayAvailability.totalAvailableMinutes;
+        totalFreeMinutes += dayAvailability.totalFreeMinutes;
       }
 
       console.log(
-        `Availability calculated: ${availability.length} days, ${totalAvailableMinutes} total minutes available`
+        `Availability calculated: ${availability.length} days, ${totalFreeMinutes} total minutes available`
       );
 
       return {
         success: true,
         availability,
-        totalAvailableMinutes,
+        totalFreeMinutes,
         calendarsChecked: calendarIds,
       };
     } catch (error) {
@@ -270,7 +270,7 @@ export const getAvailability = functions.https.onCall(
         return {
           success: false,
           availability: [],
-          totalAvailableMinutes: 0,
+          totalFreeMinutes: 0,
           calendarsChecked: [],
           error: 'Calendar access has been revoked. Please reconnect your calendar.',
         };
@@ -315,7 +315,7 @@ export async function calculateAvailabilityInternal(
     return {
       success: false,
       availability: [],
-      totalAvailableMinutes: 0,
+      totalFreeMinutes: 0,
       calendarsChecked: [],
       error: 'Calendar not connected.',
     };
@@ -352,7 +352,7 @@ export async function calculateAvailabilityInternal(
   // Generate availability for each day
   const dates = getDateRange(start, end);
   const availability: AvailabilityWindow[] = [];
-  let totalAvailableMinutes = 0;
+  let totalFreeMinutes = 0;
 
   for (const date of dates) {
     const dayStart = new Date(date);
@@ -373,13 +373,13 @@ export async function calculateAvailabilityInternal(
     );
 
     availability.push(dayAvailability);
-    totalAvailableMinutes += dayAvailability.totalAvailableMinutes;
+    totalFreeMinutes += dayAvailability.totalFreeMinutes;
   }
 
   return {
     success: true,
     availability,
-    totalAvailableMinutes,
+    totalFreeMinutes,
     calendarsChecked: calendarIds,
   };
 }

@@ -263,11 +263,14 @@ export const proposeSchedule = functions.https.onCall(
       // Collect all available slots
       const allAvailableSlots: Array<{ start: string; end: string }> = [];
       for (const day of availabilityResult.availability) {
-        // Skip non-working days
-        if (!preferences.workingDays.includes(day.dayOfWeek)) {
+        // Skip non-working days (get day of week from date string)
+        const dayDate = new Date(day.date);
+        if (!preferences.workingDays.includes(dayDate.getDay())) {
           continue;
         }
-        allAvailableSlots.push(...day.availableSlots);
+        // Filter for available slots only
+        const availableSlots = day.slots.filter(slot => slot.available);
+        allAvailableSlots.push(...availableSlots);
       }
 
       // Sort tasks by priority if respecting priority
@@ -449,10 +452,14 @@ export async function proposeScheduleInternal(
 
     const allAvailableSlots: Array<{ start: string; end: string }> = [];
     for (const day of availabilityResult.availability) {
-      if (!preferences.workingDays.includes(day.dayOfWeek)) {
+      // Skip non-working days (get day of week from date string)
+      const dayDate = new Date(day.date);
+      if (!preferences.workingDays.includes(dayDate.getDay())) {
         continue;
       }
-      allAvailableSlots.push(...day.availableSlots);
+      // Filter for available slots only
+      const availableSlots = day.slots.filter(slot => slot.available);
+      allAvailableSlots.push(...availableSlots);
     }
 
     const sortedTasks = respectPriority ? sortTasksByPriority(tasks) : tasks;
