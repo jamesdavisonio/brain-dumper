@@ -104,17 +104,21 @@ interface SerializedFreeBusyRange {
  */
 export async function getCalendarEvents(params: GetCalendarEventsParams): Promise<CalendarEvent[]> {
   const getEvents = httpsCallable<
-    { calendarId: string; startDate: string; endDate: string },
-    SerializedCalendarEvent[]
+    { calendarId: string; timeMin: string; timeMax: string },
+    { success: boolean; events: SerializedCalendarEvent[]; error?: string }
   >(functions, 'getCalendarEvents')
 
   const result = await getEvents({
     calendarId: params.calendarId,
-    startDate: params.startDate.toISOString(),
-    endDate: params.endDate.toISOString(),
+    timeMin: params.startDate.toISOString(),
+    timeMax: params.endDate.toISOString(),
   })
 
-  return result.data.map(deserializeCalendarEvent)
+  if (!result.data.success) {
+    throw new Error(result.data.error || 'Failed to fetch calendar events')
+  }
+
+  return result.data.events.map(deserializeCalendarEvent)
 }
 
 /**
@@ -149,6 +153,16 @@ export async function getFreeBusy(
 }
 
 /**
+ * Formats a Date to YYYY-MM-DD string for the availability API
+ */
+function formatDateString(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
  * Gets processed availability windows for scheduling
  * @param params - Parameters for availability calculation
  * @returns Promise resolving to array of AvailabilityWindow objects
@@ -160,20 +174,31 @@ export async function getAvailability(params: GetAvailabilityParams): Promise<Av
       startDate: string
       endDate: string
       workingHours?: { start: string; end: string }
-      timezone?: string
+      timezone: string
     },
-    SerializedAvailabilityWindow[]
+    {
+      success: boolean
+      availability: SerializedAvailabilityWindow[]
+      error?: string
+    }
   >(functions, 'getAvailability')
+
+  // Use provided timezone or default to user's local timezone
+  const timezone = params.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
 
   const result = await fetchAvailability({
     calendarIds: params.calendarIds,
-    startDate: params.startDate.toISOString(),
-    endDate: params.endDate.toISOString(),
+    startDate: formatDateString(params.startDate),
+    endDate: formatDateString(params.endDate),
     workingHours: params.workingHours,
-    timezone: params.timezone,
+    timezone,
   })
 
-  return result.data.map(deserializeAvailabilityWindow)
+  if (!result.data.success) {
+    throw new Error(result.data.error || 'Failed to fetch availability')
+  }
+
+  return result.data.availability.map(deserializeAvailabilityWindow)
 }
 
 /**

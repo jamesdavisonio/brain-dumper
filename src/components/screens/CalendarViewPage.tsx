@@ -39,6 +39,7 @@ export function CalendarViewPage() {
     endDate,
     calendarIds: enabledCalendarIds,
     workingHours: { start: '09:00', end: '17:00' },
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     enabled: isConnected && enabledCalendarIds.length > 0,
   })
 
