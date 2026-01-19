@@ -163,8 +163,9 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
         const results = await Promise.all(eventPromises)
 
         if (isMountedRef.current) {
-          // Flatten and sort all events by start time
-          const allEvents = results.flat().sort((a, b) => a.start.getTime() - b.start.getTime())
+          // Flatten, deduplicate, and sort all events by start time
+          const allEvents = deduplicateEvents(results.flat())
+            .sort((a, b) => a.start.getTime() - b.start.getTime())
           setEvents(allEvents)
           lastCacheKeyRef.current = cacheKey
         }
@@ -209,7 +210,8 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
       })
 
       const results = await Promise.all(eventPromises)
-      const allEvents = results.flat().sort((a, b) => a.start.getTime() - b.start.getTime())
+      const allEvents = deduplicateEvents(results.flat())
+        .sort((a, b) => a.start.getTime() - b.start.getTime())
       setEvents(allEvents)
       lastCacheKeyRef.current = `${calendarIdsKey}|${startDateIso}|${endDateIso}`
     } catch (err) {
@@ -252,4 +254,24 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
     getEventsForDate,
     getEventsInRange,
   }
+}
+
+/**
+ * Deduplicates calendar events by matching on title and time
+ * Events are considered duplicates if they have the same title and overlapping times
+ */
+function deduplicateEvents(events: CalendarEvent[]): CalendarEvent[] {
+  const seen = new Map<string, CalendarEvent>()
+
+  for (const event of events) {
+    // Create a key based on title and start/end times
+    // This catches duplicates across calendars (e.g., shared meetings)
+    const key = `${event.title}|${event.start.getTime()}|${event.end.getTime()}`
+
+    if (!seen.has(key)) {
+      seen.set(key, event)
+    }
+  }
+
+  return Array.from(seen.values())
 }
