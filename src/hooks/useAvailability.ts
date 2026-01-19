@@ -54,20 +54,6 @@ export interface UseAvailabilityResult {
 }
 
 /**
- * Generates a cache key from the options
- */
-function generateCacheKey(options: UseAvailabilityOptions): string {
-  const parts = [
-    options.startDate.toISOString(),
-    options.endDate.toISOString(),
-    options.calendarIds?.sort().join(',') || 'default',
-    options.workingHours ? `${options.workingHours.start}-${options.workingHours.end}` : 'none',
-    options.timezone || 'default',
-  ]
-  return parts.join('|')
-}
-
-/**
  * Hook for fetching calendar availability data
  * Manages loading state, caching, and provides helper functions
  *
@@ -119,29 +105,81 @@ export function useAvailability(options: UseAvailabilityOptions): UseAvailabilit
 
   // Track the last cache key to avoid redundant fetches
   const lastCacheKeyRef = useRef<string>('')
-  const lastFetchSucceededRef = useRef(false)
   const isMountedRef = useRef(true)
+  const fetchInProgressRef = useRef(false)
+
+  // Stable references to avoid unnecessary re-renders
+  const startDateIso = startDate.toISOString()
+  const endDateIso = endDate.toISOString()
+  const calendarIdsKey = calendarIds?.sort().join(',') || 'default'
+  const workingHoursKey = workingHours ? `${workingHours.start}-${workingHours.end}` : 'none'
+  const timezoneKey = timezone || 'default'
 
   // Memoize the availability map for quick lookups
   const availabilityByDate = useMemo(() => {
     return groupAvailabilityByDate(availability)
   }, [availability])
 
-  // Fetch function
-  const fetchAvailability = useCallback(async () => {
-    if (!enabled) {
-      return
+  // Effect to fetch data when options change
+  useEffect(() => {
+    isMountedRef.current = true
+
+    const fetchAvailabilityData = async () => {
+      if (!enabled) {
+        return
+      }
+
+      const cacheKey = `${startDateIso}|${endDateIso}|${calendarIdsKey}|${workingHoursKey}|${timezoneKey}`
+
+      // Skip if already fetching or cache is valid
+      if (fetchInProgressRef.current) {
+        return
+      }
+      if (cacheKey === lastCacheKeyRef.current) {
+        return
+      }
+
+      fetchInProgressRef.current = true
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const data = await getAvailability({
+          startDate,
+          endDate,
+          calendarIds,
+          workingHours,
+          timezone,
+        })
+
+        if (isMountedRef.current) {
+          setAvailability(data)
+          lastCacheKeyRef.current = cacheKey
+        }
+      } catch (err) {
+        if (isMountedRef.current) {
+          setError(err instanceof Error ? err : new Error('Failed to fetch availability'))
+        }
+      } finally {
+        fetchInProgressRef.current = false
+        if (isMountedRef.current) {
+          setIsLoading(false)
+        }
+      }
     }
 
-    const cacheKey = generateCacheKey(options)
+    fetchAvailabilityData()
 
-    // Skip if the options haven't changed (same cache key) and the last fetch succeeded
-    if (cacheKey === lastCacheKeyRef.current && lastFetchSucceededRef.current) {
-      return
+    return () => {
+      isMountedRef.current = false
     }
+  }, [enabled, startDateIso, endDateIso, calendarIdsKey, workingHoursKey, timezoneKey, startDate, endDate, calendarIds, workingHours, timezone])
 
-    setIsLoading(true)
+  // Refetch function (forces a fresh fetch)
+  const refetch = useCallback(async () => {
+    lastCacheKeyRef.current = '' // Clear cache key to force refetch
     setError(null)
+    setIsLoading(true)
 
     try {
       const data = await getAvailability({
@@ -151,39 +189,14 @@ export function useAvailability(options: UseAvailabilityOptions): UseAvailabilit
         workingHours,
         timezone,
       })
-
-      if (isMountedRef.current) {
-        setAvailability(data)
-        lastCacheKeyRef.current = cacheKey
-        lastFetchSucceededRef.current = true
-      }
+      setAvailability(data)
+      lastCacheKeyRef.current = `${startDateIso}|${endDateIso}|${calendarIdsKey}|${workingHoursKey}|${timezoneKey}`
     } catch (err) {
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch availability'))
-        lastFetchSucceededRef.current = false
-      }
+      setError(err instanceof Error ? err : new Error('Failed to fetch availability'))
     } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false)
-      }
+      setIsLoading(false)
     }
-  }, [enabled, startDate, endDate, calendarIds, workingHours, timezone, options, availability.length])
-
-  // Refetch function (forces a fresh fetch)
-  const refetch = useCallback(async () => {
-    lastCacheKeyRef.current = '' // Clear cache key to force refetch
-    await fetchAvailability()
-  }, [fetchAvailability])
-
-  // Effect to fetch data when options change
-  useEffect(() => {
-    isMountedRef.current = true
-    fetchAvailability()
-
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [fetchAvailability])
+  }, [startDate, endDate, calendarIds, workingHours, timezone, startDateIso, endDateIso, calendarIdsKey, workingHoursKey, timezoneKey])
 
   // Helper: Get availability for a specific date
   const getAvailabilityForDate = useCallback((date: Date): AvailabilityWindow | undefined => {

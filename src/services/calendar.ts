@@ -86,10 +86,9 @@ export async function updateCalendarPreferences(
   enabled: boolean,
   type: 'work' | 'personal'
 ): Promise<void> {
-  // Calendar IDs from subscribeToCalendars are already encoded (they come from docSnapshot.id)
-  // But if the ID contains @ or other special chars, it might be the raw Google Calendar ID
-  // We check if it's already encoded by looking for common encoded patterns
-  const encodedId = calendarId.includes('%') ? calendarId : encodeCalendarId(calendarId)
+  // calendarId is now the raw Google Calendar ID (e.g., "user@gmail.com")
+  // We need to encode it for the Firestore document path
+  const encodedId = encodeCalendarId(calendarId)
   const calendarRef = doc(db, 'users', userId, 'calendars', encodedId)
   const preferencesRef = doc(db, 'users', userId, 'preferences', 'calendar')
 
@@ -103,7 +102,7 @@ export async function updateCalendarPreferences(
   })
 
   // Also update the preferences document's enabledCalendarIds array
-  // This is what the UI reads from on page load
+  // Store the RAW calendar ID (not encoded) - this is what gets sent to Google Calendar API
   if (enabled) {
     await setDoc(preferencesRef, {
       enabledCalendarIds: arrayUnion(calendarId),
@@ -199,9 +198,13 @@ export function subscribeToCalendars(
       console.log('[calendar.ts] Calendars snapshot received, count:', snapshot.docs.length)
       const calendars: ConnectedCalendar[] = snapshot.docs.map((docSnapshot) => {
         const data = docSnapshot.data()
-        console.log('[calendar.ts] Calendar doc:', docSnapshot.id, 'enabled:', data.enabled)
+        // Use the raw calendar ID stored in the document, not the encoded document ID
+        // The document ID is URL-encoded for Firestore compatibility, but the 'id' field
+        // contains the actual Google Calendar ID (e.g., "user@gmail.com")
+        const calendarId = (data.id as string) || decodeURIComponent(docSnapshot.id)
+        console.log('[calendar.ts] Calendar doc:', docSnapshot.id, 'id:', calendarId, 'enabled:', data.enabled)
         return {
-          id: docSnapshot.id,
+          id: calendarId,
           name: data.name as string,
           type: (data.type as 'work' | 'personal') ?? 'personal',
           color: data.color as string,
@@ -238,8 +241,22 @@ export function subscribeToCalendarPreferences(
     (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data()
+        // Decode any URL-encoded calendar IDs (for backward compatibility)
+        // Old data may have stored encoded IDs like "user%40gmail.com" instead of "user@gmail.com"
+        const rawEnabledIds = (data.enabledCalendarIds ?? []) as string[]
+        const enabledCalendarIds = rawEnabledIds.map((id) => {
+          // If the ID contains URL-encoded characters, decode it
+          if (id.includes('%')) {
+            try {
+              return decodeURIComponent(id)
+            } catch {
+              return id
+            }
+          }
+          return id
+        })
         callback({
-          enabledCalendarIds: data.enabledCalendarIds ?? [],
+          enabledCalendarIds,
           workCalendarId: data.workCalendarId ?? null,
           personalCalendarId: data.personalCalendarId ?? null,
         })

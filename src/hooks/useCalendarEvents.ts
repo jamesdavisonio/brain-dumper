@@ -46,18 +46,6 @@ export interface UseCalendarEventsResult {
 }
 
 /**
- * Generates a cache key from the options
- */
-function generateCacheKey(options: UseCalendarEventsOptions): string {
-  const parts = [
-    options.calendarIds.sort().join(','),
-    options.startDate.toISOString(),
-    options.endDate.toISOString(),
-  ]
-  return parts.join('|')
-}
-
-/**
  * Hook for fetching calendar events from multiple calendars
  * Manages loading state, caching, and provides helper functions
  *
@@ -106,6 +94,12 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
   // Track the last cache key to avoid redundant fetches
   const lastCacheKeyRef = useRef<string>('')
   const isMountedRef = useRef(true)
+  const fetchInProgressRef = useRef(false)
+
+  // Stable references for dates and calendar IDs to avoid unnecessary re-renders
+  const startDateIso = startDate.toISOString()
+  const endDateIso = endDate.toISOString()
+  const calendarIdsKey = calendarIds.sort().join(',')
 
   // Group events by calendar ID
   const eventsByCalendar = useMemo(() => {
@@ -126,25 +120,81 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
     return grouped
   }, [events, calendarIds])
 
-  // Fetch function
-  const fetchEvents = useCallback(async () => {
-    if (!enabled || calendarIds.length === 0) {
-      setEvents([])
-      return
+  // Effect to fetch data when options change
+  useEffect(() => {
+    isMountedRef.current = true
+
+    const fetchEvents = async () => {
+      if (!enabled || calendarIds.length === 0) {
+        setEvents([])
+        return
+      }
+
+      const cacheKey = `${calendarIdsKey}|${startDateIso}|${endDateIso}`
+
+      // Skip if already fetching or cache is valid
+      if (fetchInProgressRef.current) {
+        return
+      }
+      if (cacheKey === lastCacheKeyRef.current) {
+        return
+      }
+
+      fetchInProgressRef.current = true
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        // Fetch events from all calendars in parallel, handling individual failures gracefully
+        const eventPromises = calendarIds.map(async (calendarId) => {
+          try {
+            return await getCalendarEvents({
+              calendarId,
+              startDate,
+              endDate,
+            })
+          } catch (err) {
+            // Log individual calendar failures but don't fail the entire request
+            console.warn(`[useCalendarEvents] Failed to fetch events from calendar ${calendarId}:`, err)
+            return [] // Return empty array for failed calendars
+          }
+        })
+
+        const results = await Promise.all(eventPromises)
+
+        if (isMountedRef.current) {
+          // Flatten and sort all events by start time
+          const allEvents = results.flat().sort((a, b) => a.start.getTime() - b.start.getTime())
+          setEvents(allEvents)
+          lastCacheKeyRef.current = cacheKey
+        }
+      } catch (err) {
+        if (isMountedRef.current) {
+          setError(err instanceof Error ? err : new Error('Failed to fetch calendar events'))
+        }
+      } finally {
+        fetchInProgressRef.current = false
+        if (isMountedRef.current) {
+          setIsLoading(false)
+        }
+      }
     }
 
-    const cacheKey = generateCacheKey(options)
+    fetchEvents()
 
-    // Skip if the options haven't changed (same cache key)
-    if (cacheKey === lastCacheKeyRef.current && events.length > 0) {
-      return
+    return () => {
+      isMountedRef.current = false
     }
+  }, [enabled, calendarIdsKey, startDateIso, endDateIso, calendarIds, startDate, endDate])
 
-    setIsLoading(true)
+  // Refetch function (forces a fresh fetch)
+  const refetch = useCallback(async () => {
+    lastCacheKeyRef.current = '' // Clear cache key to force refetch
+    // Trigger re-fetch by updating a dummy state or just call inline
     setError(null)
+    setIsLoading(true)
 
     try {
-      // Fetch events from all calendars in parallel, handling individual failures gracefully
       const eventPromises = calendarIds.map(async (calendarId) => {
         try {
           return await getCalendarEvents({
@@ -153,46 +203,21 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
             endDate,
           })
         } catch (err) {
-          // Log individual calendar failures but don't fail the entire request
           console.warn(`[useCalendarEvents] Failed to fetch events from calendar ${calendarId}:`, err)
-          return [] // Return empty array for failed calendars
+          return []
         }
       })
 
       const results = await Promise.all(eventPromises)
-
-      if (isMountedRef.current) {
-        // Flatten and sort all events by start time
-        const allEvents = results.flat().sort((a, b) => a.start.getTime() - b.start.getTime())
-        setEvents(allEvents)
-        lastCacheKeyRef.current = cacheKey
-      }
+      const allEvents = results.flat().sort((a, b) => a.start.getTime() - b.start.getTime())
+      setEvents(allEvents)
+      lastCacheKeyRef.current = `${calendarIdsKey}|${startDateIso}|${endDateIso}`
     } catch (err) {
-      if (isMountedRef.current) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch calendar events'))
-      }
+      setError(err instanceof Error ? err : new Error('Failed to fetch calendar events'))
     } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false)
-      }
+      setIsLoading(false)
     }
-  }, [enabled, calendarIds, startDate, endDate, options, events.length])
-
-  // Refetch function (forces a fresh fetch)
-  const refetch = useCallback(async () => {
-    lastCacheKeyRef.current = '' // Clear cache key to force refetch
-    await fetchEvents()
-  }, [fetchEvents])
-
-  // Effect to fetch data when options change
-  useEffect(() => {
-    isMountedRef.current = true
-    fetchEvents()
-
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [fetchEvents])
+  }, [calendarIds, startDate, endDate, calendarIdsKey, startDateIso, endDateIso])
 
   // Helper: Get events for a specific date
   const getEventsForDate = useCallback((date: Date): CalendarEvent[] => {
