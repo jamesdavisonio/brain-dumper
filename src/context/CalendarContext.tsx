@@ -163,7 +163,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       // On success, we keep isConnecting true until the Firestore subscription
       // detects the connection change. Add a timeout to stop showing "Connecting..."
       // if something goes wrong (e.g., user closes popup, Cloud Function fails)
-      const timeoutId = setTimeout(() => {
+      setTimeout(() => {
         setIsConnecting((current) => {
           if (current) {
             console.log('[CalendarContext] OAuth timeout - stopping connecting state')
@@ -173,11 +173,8 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
           return false
         })
       }, 60000) // 60 second timeout
-
-      // Store the timeout ID so we can clear it if connection succeeds
-      // The subscription callback will set isConnecting to false, which is fine
-      // because the timeout just ensures we don't hang forever
-      return () => clearTimeout(timeoutId)
+      // Note: We don't clear this timeout because the subscription callback
+      // will set isConnecting to false anyway when connection succeeds
     } catch (error) {
       console.error('Error initiating OAuth flow:', error)
       setConnectionError(
