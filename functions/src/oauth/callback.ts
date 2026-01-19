@@ -10,6 +10,7 @@ import { google, calendar_v3 } from 'googleapis';
 import { OAuthTokens, ConnectedCalendar } from '../types';
 import { OAUTH_CONFIG, FIRESTORE_PATHS } from '../config/oauth';
 import { saveTokens } from './tokenStorage';
+import { processCalendarSync } from '../webhooks/eventProcessor';
 
 const db = admin.firestore();
 
@@ -137,6 +138,21 @@ export const calendarOAuthCallback = functions.https.onRequest(
         });
 
       console.log(`Calendar connected successfully for user ${userId}`);
+
+      // Trigger initial sync for the primary calendar in the background
+      // This populates the calendar events cache so the UI can display real events
+      if (primaryEmail) {
+        // Don't await - let it run in background so redirect happens quickly
+        processCalendarSync(userId, primaryEmail)
+          .then((count) => {
+            console.log(`Initial sync completed for ${userId}: ${count} events processed`);
+          })
+          .catch((syncErr) => {
+            // Log but don't fail the OAuth flow
+            console.error(`Initial sync failed for ${userId}:`, syncErr);
+          });
+      }
+
       res.redirect(successRedirect);
     } catch (err) {
       console.error('OAuth callback error:', err);

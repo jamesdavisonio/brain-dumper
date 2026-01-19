@@ -7,13 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.1] - 2025-01-18
+## [2.0.1] - 2025-01-19
+
+### Added
+- Auto-sync calendar events after OAuth connection completes
+  - Initial sync runs in background immediately after connecting
+  - Populates calendar events cache so UI displays real Google Calendar events
 
 ### Fixed
 - Fixed Cross-Origin-Opener-Policy (COOP) issue blocking OAuth popup communication
   - OAuth flow now relies on Firestore subscription instead of postMessage/popup.closed
   - Popup opens and returns immediately; UI updates when Firestore detects connection
 - Fixed OAuth callback writing to correct Firestore path (`calendarConnection/status`)
+- Fixed Firestore undefined value error when storing calendar metadata
 - Fixed GitHub workflow to use .env file for Cloud Functions OAuth secrets
 - Fixed lint errors including conditional hook calls and unused imports
 - Updated CalendarConnection component tests to properly mock useCalendar hook
