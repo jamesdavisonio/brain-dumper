@@ -66,9 +66,17 @@ export async function refreshTokens(): Promise<boolean> {
 }
 
 /**
+ * Encode calendar ID for use as Firestore document ID
+ * Calendar IDs (like email addresses) can contain characters not allowed in document IDs
+ */
+function encodeCalendarId(calendarId: string): string {
+  return encodeURIComponent(calendarId).replace(/\./g, '%2E')
+}
+
+/**
  * Updates the preferences for a specific calendar
  * @param userId - The user's ID
- * @param calendarId - The calendar's ID
+ * @param calendarId - The calendar's ID (will be encoded for Firestore)
  * @param enabled - Whether the calendar is enabled for sync
  * @param type - The calendar type (work or personal)
  */
@@ -78,7 +86,12 @@ export async function updateCalendarPreferences(
   enabled: boolean,
   type: 'work' | 'personal'
 ): Promise<void> {
-  const calendarRef = doc(db, 'users', userId, 'calendars', calendarId)
+  // Calendar IDs from subscribeToCalendars are already encoded (they come from docSnapshot.id)
+  // But if the ID contains @ or other special chars, it might be the raw Google Calendar ID
+  // We check if it's already encoded by looking for common encoded patterns
+  const encodedId = calendarId.includes('%') ? calendarId : encodeCalendarId(calendarId)
+  const calendarRef = doc(db, 'users', userId, 'calendars', encodedId)
+  console.log('[calendar.ts] Updating calendar preferences:', { calendarId, encodedId, enabled, type })
   await updateDoc(calendarRef, {
     enabled,
     type,
@@ -162,12 +175,15 @@ export function subscribeToCalendars(
 ): () => void {
   const calendarsRef = collection(db, 'users', userId, 'calendars')
   const q = query(calendarsRef, orderBy('name', 'asc'))
+  console.log('[calendar.ts] Subscribing to calendars for user:', userId)
 
   return onSnapshot(
     q,
     (snapshot) => {
+      console.log('[calendar.ts] Calendars snapshot received, count:', snapshot.docs.length)
       const calendars: ConnectedCalendar[] = snapshot.docs.map((docSnapshot) => {
         const data = docSnapshot.data()
+        console.log('[calendar.ts] Calendar doc:', docSnapshot.id, 'enabled:', data.enabled)
         return {
           id: docSnapshot.id,
           name: data.name as string,
@@ -183,7 +199,7 @@ export function subscribeToCalendars(
       callback(calendars)
     },
     (error: Error) => {
-      console.error('Error subscribing to calendars:', error)
+      console.error('[calendar.ts] Error subscribing to calendars:', error)
       callback([])
     }
   )
