@@ -46,12 +46,16 @@ export function CalendarSelector({
     return a.name.localeCompare(b.name)
   })
 
+  // Count only enabled IDs that match actual calendars (avoid counting duplicates or stale IDs)
+  const calendarIdSet = new Set(calendars.map(c => c.id))
+  const actualEnabledCount = [...new Set(enabledIds)].filter(id => calendarIdSet.has(id)).length
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium">Your Calendars</Label>
         <span className="text-xs text-muted-foreground">
-          {enabledIds.length} of {calendars.length} enabled
+          {actualEnabledCount} of {calendars.length} enabled
         </span>
       </div>
 

@@ -244,7 +244,8 @@ export function subscribeToCalendarPreferences(
         // Decode any URL-encoded calendar IDs (for backward compatibility)
         // Old data may have stored encoded IDs like "user%40gmail.com" instead of "user@gmail.com"
         const rawEnabledIds = (data.enabledCalendarIds ?? []) as string[]
-        const enabledCalendarIds = rawEnabledIds.map((id) => {
+        // Decode and deduplicate calendar IDs
+        const decodedIds = rawEnabledIds.map((id) => {
           // If the ID contains URL-encoded characters, decode it
           if (id.includes('%')) {
             try {
@@ -255,6 +256,8 @@ export function subscribeToCalendarPreferences(
           }
           return id
         })
+        // Remove duplicates (same ID might appear encoded and decoded)
+        const enabledCalendarIds = [...new Set(decodedIds)]
         callback({
           enabledCalendarIds,
           workCalendarId: data.workCalendarId ?? null,
