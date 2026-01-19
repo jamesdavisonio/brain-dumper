@@ -171,7 +171,8 @@ async function fetchAndStoreCalendars(
   for (const cal of calendars) {
     if (!cal.id) continue;
 
-    const calendarData: ConnectedCalendar = {
+    // Note: Don't include undefined values - Firestore doesn't allow them
+    const calendarData: Omit<ConnectedCalendar, 'syncToken' | 'lastSyncAt'> = {
       id: cal.id,
       name: cal.summary || 'Untitled Calendar',
       type: inferCalendarType(cal),
@@ -179,8 +180,6 @@ async function fetchAndStoreCalendars(
       primary: cal.primary || false,
       accessRole: mapAccessRole(cal.accessRole),
       enabled: cal.primary || false, // Only enable primary calendar by default
-      syncToken: undefined,
-      lastSyncAt: undefined,
     };
 
     const docRef = calendarsRef.doc(encodeCalendarId(cal.id));
