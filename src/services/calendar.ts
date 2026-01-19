@@ -5,7 +5,7 @@
  */
 
 import { httpsCallable } from 'firebase/functions'
-import { doc, collection, query, orderBy, onSnapshot, updateDoc, Timestamp } from 'firebase/firestore'
+import { doc, collection, query, orderBy, onSnapshot, updateDoc, setDoc, Timestamp, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { functions, db } from '@/lib/firebase'
 import type { ConnectedCalendar } from '@/types/calendar'
 
@@ -91,12 +91,28 @@ export async function updateCalendarPreferences(
   // We check if it's already encoded by looking for common encoded patterns
   const encodedId = calendarId.includes('%') ? calendarId : encodeCalendarId(calendarId)
   const calendarRef = doc(db, 'users', userId, 'calendars', encodedId)
+  const preferencesRef = doc(db, 'users', userId, 'preferences', 'calendar')
+
   console.log('[calendar.ts] Updating calendar preferences:', { calendarId, encodedId, enabled, type })
+
+  // Update the calendar document
   await updateDoc(calendarRef, {
     enabled,
     type,
     updatedAt: Timestamp.now(),
   })
+
+  // Also update the preferences document's enabledCalendarIds array
+  // This is what the UI reads from on page load
+  if (enabled) {
+    await setDoc(preferencesRef, {
+      enabledCalendarIds: arrayUnion(calendarId),
+    }, { merge: true })
+  } else {
+    await setDoc(preferencesRef, {
+      enabledCalendarIds: arrayRemove(calendarId),
+    }, { merge: true })
+  }
 }
 
 /**
