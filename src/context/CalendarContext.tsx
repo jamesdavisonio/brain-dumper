@@ -85,7 +85,9 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       return
     }
 
+    console.log('[CalendarContext] Setting up Firestore subscription for user:', user.uid)
     const unsubscribe = subscribeToCalendarStatus(user.uid, (status: CalendarConnectionStatus) => {
+      console.log('[CalendarContext] Received status update:', status)
       setIsConnected(status.isConnected)
       setConnectedAt(status.connectedAt)
       setConnectedEmail(status.email)
@@ -94,6 +96,7 @@ export function CalendarProvider({ children }: CalendarProviderProps) {
       }
       // When connection status changes (either connected or error), stop the connecting state
       if (status.isConnected || status.error) {
+        console.log('[CalendarContext] Connection complete, setting isConnecting to false')
         setIsConnecting(false)
       }
     })

@@ -116,10 +116,12 @@ export function subscribeToCalendarStatus(
   callback: (status: CalendarConnectionStatus) => void
 ): () => void {
   const connectionRef = doc(db, 'users', userId, 'calendarConnection', 'status')
+  console.log('[calendar.ts] Subscribing to:', connectionRef.path)
 
   return onSnapshot(
     connectionRef,
     (snapshot) => {
+      console.log('[calendar.ts] Snapshot received, exists:', snapshot.exists(), 'data:', snapshot.data())
       if (snapshot.exists()) {
         const data = snapshot.data()
         callback({
@@ -137,7 +139,7 @@ export function subscribeToCalendarStatus(
       }
     },
     (error) => {
-      console.error('Error subscribing to calendar status:', error)
+      console.error('[calendar.ts] Error subscribing to calendar status:', error)
       callback({
         isConnected: false,
         connectedAt: null,
