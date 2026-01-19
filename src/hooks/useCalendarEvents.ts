@@ -264,9 +264,15 @@ function deduplicateEvents(events: CalendarEvent[]): CalendarEvent[] {
   const seen = new Map<string, CalendarEvent>()
 
   for (const event of events) {
-    // Create a key based on title and start/end times
-    // This catches duplicates across calendars (e.g., shared meetings)
-    const key = `${event.title}|${event.start.getTime()}|${event.end.getTime()}`
+    // Normalize title (trim whitespace, lowercase for comparison)
+    const normalizedTitle = (event.title || '').trim().toLowerCase()
+
+    // Round times to the minute to handle slight variations
+    const startMinutes = Math.floor(event.start.getTime() / 60000)
+    const endMinutes = Math.floor(event.end.getTime() / 60000)
+
+    // Create a key based on normalized title and rounded times
+    const key = `${normalizedTitle}|${startMinutes}|${endMinutes}`
 
     if (!seen.has(key)) {
       seen.set(key, event)
