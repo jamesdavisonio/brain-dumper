@@ -194,8 +194,15 @@ export async function getAvailability(params: GetAvailabilityParams): Promise<Av
     timezone,
   })
 
+  // Handle error responses
   if (!result.data.success) {
     throw new Error(result.data.error || 'Failed to fetch availability')
+  }
+
+  // Ensure availability array exists before mapping
+  if (!result.data.availability || !Array.isArray(result.data.availability)) {
+    console.warn('[getAvailability] No availability data in response:', result.data)
+    return []
   }
 
   return result.data.availability.map(deserializeAvailabilityWindow)

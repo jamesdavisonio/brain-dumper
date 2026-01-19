@@ -144,14 +144,20 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
     setError(null)
 
     try {
-      // Fetch events from all calendars in parallel
-      const eventPromises = calendarIds.map((calendarId) =>
-        getCalendarEvents({
-          calendarId,
-          startDate,
-          endDate,
-        })
-      )
+      // Fetch events from all calendars in parallel, handling individual failures gracefully
+      const eventPromises = calendarIds.map(async (calendarId) => {
+        try {
+          return await getCalendarEvents({
+            calendarId,
+            startDate,
+            endDate,
+          })
+        } catch (err) {
+          // Log individual calendar failures but don't fail the entire request
+          console.warn(`[useCalendarEvents] Failed to fetch events from calendar ${calendarId}:`, err)
+          return [] // Return empty array for failed calendars
+        }
+      })
 
       const results = await Promise.all(eventPromises)
 
