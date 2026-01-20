@@ -185,18 +185,58 @@ export function ApprovalScreen() {
       })
 
       // Collect all available slots from the availability windows
+      // The API returns 30-minute interval slots, so we need to merge consecutive available slots
+      // into larger contiguous blocks that can accommodate tasks of various durations
       const allAvailableSlots: TimeSlot[] = []
+
       for (const window of availabilityWindows) {
+        let currentBlock: { start: Date; end: Date } | null = null
+
         for (const slot of window.slots) {
           if (slot.available) {
-            allAvailableSlots.push({
-              start: slot.start,
-              end: slot.end,
-              available: true,
-            })
+            if (currentBlock === null) {
+              // Start a new block
+              currentBlock = { start: slot.start, end: slot.end }
+            } else if (slot.start.getTime() === currentBlock.end.getTime()) {
+              // Extend the current block (consecutive slot)
+              currentBlock.end = slot.end
+            } else {
+              // Gap detected - save current block and start new one
+              allAvailableSlots.push({
+                start: currentBlock.start,
+                end: currentBlock.end,
+                available: true,
+              })
+              currentBlock = { start: slot.start, end: slot.end }
+            }
+          } else {
+            // Busy slot - save current block if exists
+            if (currentBlock !== null) {
+              allAvailableSlots.push({
+                start: currentBlock.start,
+                end: currentBlock.end,
+                available: true,
+              })
+              currentBlock = null
+            }
           }
         }
+
+        // Don't forget the last block of the day
+        if (currentBlock !== null) {
+          allAvailableSlots.push({
+            start: currentBlock.start,
+            end: currentBlock.end,
+            available: true,
+          })
+        }
       }
+
+      console.log('[Schedule] Merged availability blocks:', allAvailableSlots.map(s => ({
+        start: s.start.toISOString(),
+        end: s.end.toISOString(),
+        durationMin: (s.end.getTime() - s.start.getTime()) / 60000
+      })))
 
       // Convert ParsedTasks to Task-like objects
       const mockTasks: Task[] = tasks.map((task, index) => ({
@@ -234,6 +274,7 @@ export function ApprovalScreen() {
       // Find slots for each task sequentially
       const items: ScheduledTaskItem[] = sortedTasks.map((task) => {
         const duration = task.timeEstimate || 60 // Default 60 min if no estimate
+        console.log(`[Schedule] Finding slot for task "${task.content}" (${duration} min)`)
 
         // Find the first available slot that fits this task and doesn't overlap with used ranges
         let foundSlot: TimeSlot | null = null
@@ -244,7 +285,10 @@ export function ApprovalScreen() {
           const slotDuration = (slotEnd.getTime() - slotStart.getTime()) / 60000
 
           // Skip if slot is too short
-          if (slotDuration < duration) continue
+          if (slotDuration < duration) {
+            console.log(`[Schedule] Skipping slot (${slotDuration}min < ${duration}min needed)`)
+            continue
+          }
 
           // Try to find a portion of this slot that doesn't overlap with used ranges
           let candidateStart = new Date(slotStart)
@@ -276,6 +320,7 @@ export function ApprovalScreen() {
         }
 
         if (foundSlot) {
+          console.log(`[Schedule] ✓ Found slot for "${task.content}": ${foundSlot.start.toISOString()} - ${foundSlot.end.toISOString()}`)
           return {
             task,
             proposedSlot: foundSlot,
@@ -295,6 +340,7 @@ export function ApprovalScreen() {
           }
         }
 
+        console.log(`[Schedule] ✗ No slot found for "${task.content}" (needed ${duration}min, checked ${allAvailableSlots.length} blocks)`)
         return {
           task,
           proposedSlot: null,
