@@ -122,10 +122,13 @@ export const getAvailability = functions.https.onCall(
       calendarIds: providedCalendarIds,
       startDate,
       endDate,
-      workingHours = DEFAULT_WORKING_HOURS,
+      workingHours: providedWorkingHours,
       timezone,
       slotIntervalMinutes = DEFAULT_SLOT_INTERVAL,
     } = data;
+
+    // Ensure workingHours has valid defaults (handles both undefined and null)
+    const workingHours = providedWorkingHours ?? DEFAULT_WORKING_HOURS;
 
     // Validate required parameters
     if (!startDate || !endDate) {
@@ -303,10 +306,13 @@ export async function calculateAvailabilityInternal(
 ): Promise<GetAvailabilityResponse> {
   const {
     calendarIds: providedCalendarIds,
-    workingHours = DEFAULT_WORKING_HOURS,
+    workingHours: providedWorkingHours,
     timezone = 'UTC',
     slotIntervalMinutes = DEFAULT_SLOT_INTERVAL,
   } = options;
+
+  // Ensure workingHours has valid defaults (handles both undefined and null)
+  const workingHours = providedWorkingHours ?? DEFAULT_WORKING_HOURS;
 
   // Get authenticated calendar client
   const calendar = await getCalendarClient(userId);
