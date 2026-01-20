@@ -5,13 +5,6 @@ import { BulkActionBar } from '@/components/tasks/BulkActionBar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,20 +14,16 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Search, Filter, FolderOpen, ChevronDown, ChevronRight, Edit, CheckSquare, Tag, ArrowUpDown } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, Edit, CheckSquare } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import type { Priority } from '@/types'
-import { CATEGORIES, PROJECT_COLORS, PROJECT_ICONS } from '@/lib/constants'
+import { PROJECT_COLORS, PROJECT_ICONS } from '@/lib/constants'
 import { ProjectIcon } from '@/components/ui/project-icon'
 import { Badge } from '@/components/ui/badge'
 
 export function ListView() {
   const { tasks, projects, loading, updateProject, updateTask, deleteTask } = useTasks()
   const [search, setSearch] = useState('')
-  const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all')
-  const [projectFilter, setProjectFilter] = useState<string>('all')
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<'dueDate' | 'priority' | 'createdAt'>('createdAt')
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set())
   const [editingProject, setEditingProject] = useState<{ id: string; name: string; color: string; icon: string } | null>(null)
   const [newProjectName, setNewProjectName] = useState('')
@@ -163,43 +152,14 @@ export function ListView() {
         }
         return true
       })
-      .filter((t) => {
-        if (priorityFilter !== 'all') {
-          return t.priority === priorityFilter
-        }
-        return true
-      })
-      .filter((t) => {
-        if (projectFilter !== 'all') {
-          return t.project === projectFilter
-        }
-        return true
-      })
-      .filter((t) => {
-        if (categoryFilter !== 'all') {
-          return t.category === categoryFilter
-        }
-        return true
-      })
 
-    // Sort tasks
+    // Sort by most recent first
     filtered.sort((a, b) => {
-      if (sortBy === 'dueDate') {
-        if (!a.dueDate && !b.dueDate) return 0
-        if (!a.dueDate) return 1
-        if (!b.dueDate) return -1
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-      }
-      if (sortBy === 'priority') {
-        const priorityOrder = { high: 0, medium: 1, low: 2 }
-        return priorityOrder[a.priority] - priorityOrder[b.priority]
-      }
-      // Default: createdAt
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
 
     return filtered
-  }, [tasks, search, priorityFilter, projectFilter, categoryFilter, sortBy])
+  }, [tasks, search])
 
   const completedTasks = useMemo(() => {
     return tasks.filter((t) => t.completed && !t.archived)
@@ -237,7 +197,7 @@ export function ListView() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -248,77 +208,16 @@ export function ListView() {
           />
         </div>
 
-        <div className="flex gap-2">
-          <Select
-            value={priorityFilter}
-            onValueChange={(v) => setPriorityFilter(v as Priority | 'all')}
-          >
-            <SelectTrigger className="w-[130px]">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-[150px]">
-              <FolderOpen className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Projects</SelectItem>
-              <SelectItem value="none">No Project</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.name}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[140px]">
-              <Tag className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {CATEGORIES.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-            <SelectTrigger className="w-[140px]">
-              <ArrowUpDown className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Sort" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="createdAt">Recent</SelectItem>
-              <SelectItem value="dueDate">Due Date</SelectItem>
-              <SelectItem value="priority">Priority</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button
-            variant={selectionMode ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => {
-              setSelectionMode(!selectionMode)
-              setSelectedTasks(new Set())
-            }}
-          >
-            <CheckSquare className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant={selectionMode ? 'default' : 'outline'}
+          size="icon"
+          onClick={() => {
+            setSelectionMode(!selectionMode)
+            setSelectedTasks(new Set())
+          }}
+        >
+          <CheckSquare className="h-4 w-4" />
+        </Button>
       </div>
 
       <Tabs defaultValue="all">

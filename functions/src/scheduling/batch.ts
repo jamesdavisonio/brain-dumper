@@ -141,7 +141,8 @@ function markSlotAsUsed(
 ): SchedulingAvailabilityWindow[] {
   return availability.map((window) => ({
     ...window,
-    slots: window.slots.map((slot) => {
+    // Use flatMap to properly handle slot splitting (one slot can become 0, 1, or 2 slots)
+    slots: window.slots.flatMap((slot) => {
       if (slotsOverlap(slot, usedSlot)) {
         // Split the slot if needed
         const newSlots: TimeSlot[] = [];
@@ -164,15 +165,15 @@ function markSlotAsUsed(
           });
         }
 
-        // If no parts remain, mark as unavailable
+        // If no parts remain, return the slot as unavailable
         if (newSlots.length === 0) {
-          return { ...slot, available: false };
+          return [{ ...slot, available: false }];
         }
 
-        // Return first new slot (simplified - in production would need to handle multiple)
-        return newSlots[0];
+        // Return all split slots (before and after the used portion)
+        return newSlots;
       }
-      return slot;
+      return [slot];
     }),
     totalFreeMinutes: window.totalFreeMinutes -
       Math.max(0, Math.min(

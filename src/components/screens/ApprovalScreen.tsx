@@ -33,6 +33,8 @@ import {
   ScheduleApprovalPanel,
   ScheduleSummaryCard,
 } from '@/components/scheduling'
+import { getAvailability } from '@/services/availability'
+import { addDays, startOfDay } from 'date-fns'
 
 type ApprovalState = 'pending' | 'approved' | 'rejected' | 'modified'
 
@@ -82,7 +84,9 @@ function formatRecurrence(recurrence?: Recurrence): string {
 export function ApprovalScreen() {
   const navigate = useNavigate()
   const { bulkAddTasks, addProject, projects } = useTasks()
-  const { isConnected: isCalendarConnected } = useCalendar()
+  const { isConnected: isCalendarConnected, enabledCalendarIds, workCalendarId, personalCalendarId } = useCalendar()
+  // Use work calendar as primary for scheduling, fall back to personal or first enabled
+  const primaryCalendarId = workCalendarId || personalCalendarId || enabledCalendarIds[0]
   const { toast } = useToast()
   const [tasks, setTasks] = useState<ParsedTask[]>([])
   const [suggestedProjects, setSuggestedProjects] = useState<string[]>([])
@@ -160,11 +164,41 @@ export function ApprovalScreen() {
     setShowFeedback(false)
   }
 
-  // Generate schedule proposal from approved tasks
+  // Generate schedule proposal from approved tasks using real availability
   const generateScheduleProposal = async () => {
     setIsGeneratingSchedule(true)
     try {
-      // Convert ParsedTasks to Task-like objects for scheduling
+      // Get the calendar to schedule on (prefer primary, fall back to first enabled)
+      const calendarId = primaryCalendarId || enabledCalendarIds[0]
+      if (!calendarId) {
+        throw new Error('No calendar available for scheduling')
+      }
+
+      // Fetch real availability for the next 7 days
+      const startDate = startOfDay(new Date())
+      const endDate = addDays(startDate, 7)
+
+      const availabilityWindows = await getAvailability({
+        calendarIds: [calendarId],
+        startDate,
+        endDate,
+      })
+
+      // Collect all available slots from the availability windows
+      const allAvailableSlots: TimeSlot[] = []
+      for (const window of availabilityWindows) {
+        for (const slot of window.slots) {
+          if (slot.available) {
+            allAvailableSlots.push({
+              start: slot.start,
+              end: slot.end,
+              available: true,
+            })
+          }
+        }
+      }
+
+      // Convert ParsedTasks to Task-like objects
       const mockTasks: Task[] = tasks.map((task, index) => ({
         id: `temp-${index}`,
         content: task.content,
@@ -183,34 +217,76 @@ export function ApprovalScreen() {
         category: task.category,
       }))
 
-      // Generate mock scheduling suggestions
-      // In a real implementation, this would call a scheduling service
-      const items: ScheduledTaskItem[] = mockTasks.map((task) => {
-        const hasTimeEstimate = task.timeEstimate && task.timeEstimate > 0
-        const now = new Date()
-        const tomorrow = new Date(now)
-        tomorrow.setDate(tomorrow.getDate() + 1)
-        tomorrow.setHours(9, 0, 0, 0)
+      // Sort tasks by priority (high first) then by due date
+      const sortedTasks = [...mockTasks].sort((a, b) => {
+        const priorityOrder = { high: 0, medium: 1, low: 2 }
+        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority]
+        if (priorityDiff !== 0) return priorityDiff
+        if (a.dueDate && b.dueDate) {
+          return a.dueDate.getTime() - b.dueDate.getTime()
+        }
+        return 0
+      })
 
-        const duration = task.timeEstimate || 60
+      // Track used time ranges to avoid double-booking
+      const usedRanges: Array<{ start: Date; end: Date }> = []
 
-        if (hasTimeEstimate) {
-          const slotEnd = new Date(tomorrow.getTime() + duration * 60000)
+      // Find slots for each task sequentially
+      const items: ScheduledTaskItem[] = sortedTasks.map((task) => {
+        const duration = task.timeEstimate || 60 // Default 60 min if no estimate
+
+        // Find the first available slot that fits this task and doesn't overlap with used ranges
+        let foundSlot: TimeSlot | null = null
+
+        for (const slot of allAvailableSlots) {
+          const slotStart = slot.start
+          const slotEnd = slot.end
+          const slotDuration = (slotEnd.getTime() - slotStart.getTime()) / 60000
+
+          // Skip if slot is too short
+          if (slotDuration < duration) continue
+
+          // Try to find a portion of this slot that doesn't overlap with used ranges
+          let candidateStart = new Date(slotStart)
+
+          while (candidateStart.getTime() + duration * 60000 <= slotEnd.getTime()) {
+            const candidateEnd = new Date(candidateStart.getTime() + duration * 60000)
+
+            // Check if this candidate overlaps with any used range
+            const hasOverlap = usedRanges.some(
+              (range) => candidateStart < range.end && candidateEnd > range.start
+            )
+
+            if (!hasOverlap) {
+              foundSlot = {
+                start: candidateStart,
+                end: candidateEnd,
+                available: true,
+              }
+              // Mark this range as used
+              usedRanges.push({ start: candidateStart, end: candidateEnd })
+              break
+            }
+
+            // Move to next 15-minute increment
+            candidateStart = new Date(candidateStart.getTime() + 15 * 60000)
+          }
+
+          if (foundSlot) break
+        }
+
+        if (foundSlot) {
           return {
             task,
-            proposedSlot: {
-              start: tomorrow,
-              end: slotEnd,
-              available: true,
-            },
+            proposedSlot: foundSlot,
             suggestions: [
               {
-                slot: { start: tomorrow, end: slotEnd, available: true },
+                slot: foundSlot,
                 score: 85,
-                reasoning: 'Best available slot based on your preferences',
+                reasoning: 'Best available slot based on your calendar availability',
                 factors: [
-                  { name: 'Time preference', weight: 0.3, value: 90, description: 'Excellent' },
-                  { name: 'Buffer time', weight: 0.2, value: 80, description: 'Available' },
+                  { name: 'Calendar availability', weight: 0.5, value: 100, description: 'Free slot' },
+                  { name: 'Priority order', weight: 0.3, value: 90, description: 'Scheduled by priority' },
                 ],
                 conflicts: [],
               },
@@ -224,7 +300,7 @@ export function ApprovalScreen() {
           proposedSlot: null,
           suggestions: [],
           approvalState: 'pending' as ApprovalState,
-          error: 'No time estimate provided',
+          error: duration ? 'No available slot found in the next 7 days' : 'No time estimate provided',
         }
       })
 
@@ -242,7 +318,7 @@ export function ApprovalScreen() {
         },
       })
 
-      // Initialize approvals as pending
+      // Initialize approvals - auto-approve scheduled items
       const initialApprovals = new Map<string, ApprovalState>()
       items.forEach((item) => {
         initialApprovals.set(item.task.id, item.proposedSlot ? 'approved' : 'rejected')
@@ -252,7 +328,7 @@ export function ApprovalScreen() {
       console.error('Failed to generate schedule:', error)
       toast({
         title: 'Failed to generate schedule',
-        description: 'Could not create scheduling suggestions. Try again.',
+        description: error instanceof Error ? error.message : 'Could not create scheduling suggestions. Try again.',
         variant: 'destructive',
       })
     } finally {
@@ -343,8 +419,11 @@ export function ApprovalScreen() {
           const approvalState = scheduleApprovals.get(`temp-${index}`)
 
           if (scheduleItem?.proposedSlot && approvalState === 'approved') {
+            // The calendarId is required for the Firestore trigger to create the calendar event
+            const calendarId = primaryCalendarId || enabledCalendarIds[0]
             taskData.scheduledStart = scheduleItem.proposedSlot.start
             taskData.scheduledEnd = scheduleItem.proposedSlot.end
+            taskData.calendarId = calendarId
             taskData.syncStatus = 'pending'
           }
         }

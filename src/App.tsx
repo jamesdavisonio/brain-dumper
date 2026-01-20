@@ -17,6 +17,7 @@ import { SettingsView } from '@/components/screens/SettingsView'
 import { ChangelogView } from '@/components/screens/ChangelogView'
 import { ChangelogModal } from '@/components/changelog/ChangelogModal'
 import { OAuthCallback } from '@/components/auth/OAuthCallback'
+import { CalendarPreloader } from '@/components/calendar/CalendarPreloader'
 import { useChangelog } from '@/hooks/useChangelog'
 
 function AppRoutes() {
@@ -54,6 +55,7 @@ function App() {
             <AuthProvider>
               <AuthGuard>
                 <CalendarProvider>
+                  <CalendarPreloader />
                   <TaskProvider>
                     <AppRoutes />
                     <Toaster />

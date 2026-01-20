@@ -90,6 +90,8 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  // Counter to force cache invalidation
+  const [cacheVersion, setCacheVersion] = useState(0)
 
   // Track the last cache key to avoid redundant fetches
   const lastCacheKeyRef = useRef<string>('')
@@ -130,7 +132,7 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
         return
       }
 
-      const cacheKey = `${calendarIdsKey}|${startDateIso}|${endDateIso}`
+      const cacheKey = `${calendarIdsKey}|${startDateIso}|${endDateIso}|v${cacheVersion}`
 
       // Skip if already fetching or cache is valid
       if (fetchInProgressRef.current) {
@@ -186,40 +188,13 @@ export function useCalendarEvents(options: UseCalendarEventsOptions): UseCalenda
     return () => {
       isMountedRef.current = false
     }
-  }, [enabled, calendarIdsKey, startDateIso, endDateIso, calendarIds, startDate, endDate])
+  }, [enabled, calendarIdsKey, startDateIso, endDateIso, calendarIds, startDate, endDate, cacheVersion])
 
-  // Refetch function (forces a fresh fetch)
+  // Refetch function (forces a fresh fetch by incrementing cache version)
   const refetch = useCallback(async () => {
-    lastCacheKeyRef.current = '' // Clear cache key to force refetch
-    // Trigger re-fetch by updating a dummy state or just call inline
-    setError(null)
-    setIsLoading(true)
-
-    try {
-      const eventPromises = calendarIds.map(async (calendarId) => {
-        try {
-          return await getCalendarEvents({
-            calendarId,
-            startDate,
-            endDate,
-          })
-        } catch (err) {
-          console.warn(`[useCalendarEvents] Failed to fetch events from calendar ${calendarId}:`, err)
-          return []
-        }
-      })
-
-      const results = await Promise.all(eventPromises)
-      const allEvents = deduplicateEvents(results.flat())
-        .sort((a, b) => a.start.getTime() - b.start.getTime())
-      setEvents(allEvents)
-      lastCacheKeyRef.current = `${calendarIdsKey}|${startDateIso}|${endDateIso}`
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch calendar events'))
-    } finally {
-      setIsLoading(false)
-    }
-  }, [calendarIds, startDate, endDate, calendarIdsKey, startDateIso, endDateIso])
+    // Increment cache version to invalidate cache and trigger useEffect
+    setCacheVersion((v) => v + 1)
+  }, [])
 
   // Helper: Get events for a specific date
   const getEventsForDate = useCallback((date: Date): CalendarEvent[] => {

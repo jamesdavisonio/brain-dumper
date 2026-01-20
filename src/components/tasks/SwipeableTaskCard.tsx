@@ -13,10 +13,11 @@ interface SwipeableTaskCardProps {
   showProject?: boolean
   inTimeline?: boolean
   projectBorder?: boolean
+  showScheduling?: boolean
   onEditClick?: () => void
 }
 
-export function SwipeableTaskCard({ task, showProject = true, inTimeline = false, projectBorder = false, onEditClick }: SwipeableTaskCardProps) {
+export function SwipeableTaskCard({ task, showProject = true, inTimeline = false, projectBorder = false, showScheduling = true, onEditClick }: SwipeableTaskCardProps) {
   const { updateTask } = useTasks()
   const [swipeOffset, setSwipeOffset] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -141,7 +142,7 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
   })
 
   if (!isMobile) {
-    return <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} />
+    return <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} showScheduling={showScheduling} />
   }
 
   return (
@@ -201,7 +202,7 @@ export function SwipeableTaskCard({ task, showProject = true, inTimeline = false
         }}
       >
         <div ref={cardRef} className="relative">
-          <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} />
+          <TaskCard task={task} showProject={showProject} inTimeline={inTimeline} projectBorder={projectBorder} showScheduling={showScheduling} />
 
           {/* Time navigation arrows - only in timeline mode */}
           {inTimeline && task.scheduledDate && (
